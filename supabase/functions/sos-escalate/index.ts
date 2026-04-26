@@ -41,6 +41,26 @@ async function twilioSend(to: string, body: string) {
   return { ok: true }
 }
 
+async function twilioCall(to: string, twimlMessage: string) {
+  const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID')
+  const authToken = Deno.env.get('TWILIO_AUTH_TOKEN')
+  const from = Deno.env.get('TWILIO_FROM')
+  if (!accountSid || !authToken || !from) return { ok: false, error: 'Twilio not configured' }
+
+  const url = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Calls.json`
+  const twiml = `<Response><Say voice="alice">${twimlMessage}</Say></Response>`
+  const form = new URLSearchParams({ To: to, From: from, Twiml: twiml })
+  const basic = btoa(`${accountSid}:${authToken}`)
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { Authorization: `Basic ${basic}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: form.toString(),
+  })
+  const text = await res.text()
+  if (!res.ok) return { ok: false, error: text }
+  return { ok: true }
+}
+
 async function fcmSend(token: string, title: string, body: string, data: Record<string, string>) {
   const serverKey = Deno.env.get('FCM_SERVER_KEY')
   if (!serverKey) return { ok: false, error: 'FCM not configured' }
@@ -103,9 +123,20 @@ Deno.serve(async (req) => {
     .eq('user_id', sos.user_id)
     .neq('push_token', null)
 
-  const msg = `Saaya SOS (Level ${sos.level}). Open the app for live details.`
+  const { data: latestPresence } = await supabase
+    .from('user_presence')
+    .select('lat,lng,last_seen')
+    .eq('user_id', sos.user_id)
+    .maybeSingle()
+  const mapUrl =
+    latestPresence?.lat && latestPresence?.lng
+      ? `https://www.openstreetmap.org/?mlat=${latestPresence.lat}&mlon=${latestPresence.lng}#map=17/${latestPresence.lat}/${latestPresence.lng}`
+      : ''
+  const msg = `Saaya SOS (Level ${sos.level}). ${mapUrl ? `Live location: ${mapUrl}` : 'Open the app for live details.'}`
   const smsResults: any[] = []
+  const callResults: any[] = []
   const pushResults: any[] = []
+  let witnessRequestId: string | null = null
 
   if (sos.level >= 2) {
     for (const c of contacts ?? []) {
@@ -116,13 +147,38 @@ Deno.serve(async (req) => {
         await fcmSend(d.push_token, 'Saaya SOS', msg, { sos_event_id: sos.id, level: String(sos.level) }),
       )
     }
+
+    if (latestPresence?.lat && latestPresence?.lng) {
+      const { data: req } = await supabase
+        .from('witness_requests')
+        .insert({
+          user_id: sos.user_id,
+          sos_event_id: sos.id,
+          message: 'Emergency nearby: user may need immediate help.',
+          lat: latestPresence.lat,
+          lng: latestPresence.lng,
+          status: 'open',
+        })
+        .select('id')
+        .single()
+      witnessRequestId = req?.id ?? null
+    }
+  }
+
+  if (sos.level >= 3) {
+    for (const c of contacts ?? []) {
+      callResults.push({
+        to: c.phone,
+        ...(await twilioCall(c.phone, 'Saaya emergency alert. Please open the app for live location.')),
+      })
+    }
   }
 
   await supabase.from('sos_actions').insert({
     sos_event_id: sos.id,
     action: 'escalate',
-    meta: { level: sos.level, smsResults, pushResults },
+    meta: { level: sos.level, smsResults, pushResults, callResults, witnessRequestId },
   })
 
-  return json({ ok: true, level: sos.level, smsResults, pushResults })
+  return json({ ok: true, level: sos.level, smsResults, pushResults, callResults, witnessRequestId })
 })

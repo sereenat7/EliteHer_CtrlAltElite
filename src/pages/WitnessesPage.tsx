@@ -119,7 +119,7 @@ export function WitnessesPage() {
           Community mobilization <Users className="h-4 w-4 text-zinc-300" />
         </CardTitle>
         <CardDescription className="mt-1">
-          UI for “digital witnesses”: invite nearby helpers, verification, and safe check-ins.
+          Live digital witness flow: nearby helper discovery, requests, and response tracking.
         </CardDescription>
       </Card>
 
@@ -206,14 +206,18 @@ export function WitnessesPage() {
               setStatus(null)
               try {
                 const pos = await getCurrentPosition()
-                const { error } = await supabase.from('witness_requests').insert({
-                  message: 'Need nearby help (Saaya).',
-                  lat: pos.coords.latitude,
-                  lng: pos.coords.longitude,
-                  status: 'open',
+                      const { data, error } = await supabase.functions.invoke('nearby-alert', {
+                        body: {
+                          message: 'Need nearby help (Saaya).',
+                          lat: pos.coords.latitude,
+                          lng: pos.coords.longitude,
+                          radius_m: 1500,
+                        },
                 })
                 if (error) throw error
-                setStatus('Broadcasted help request.')
+                      setStatus(
+                        `Broadcasted help request. Helpers nearby: ${data?.helper_count ?? 0}, notified: ${data?.notified ?? 0}.`,
+                      )
                 await refresh()
               } catch (e: any) {
                 setStatus(e?.message ?? 'Failed to broadcast')

@@ -15,6 +15,11 @@ do $$ begin
 exception when duplicate_object then null;
 end $$;
 
+do $$ begin
+  create type public.app_role as enum ('user', 'ngo', 'admin');
+exception when duplicate_object then null;
+end $$;
+
 -- Contacts
 create table if not exists public.contacts (
   id uuid primary key default gen_random_uuid(),
@@ -138,6 +143,57 @@ create table if not exists public.user_presence (
 create index if not exists user_presence_geog_gist on public.user_presence using gist (geog);
 create index if not exists user_presence_last_seen_idx on public.user_presence (last_seen desc);
 
+-- User role mapping for admin/NGO governance workflows
+create table if not exists public.user_roles (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  role public.app_role not null default 'user',
+  created_at timestamptz not null default now()
+);
+
+-- Role helper function used by RLS and dashboard gating.
+create or replace function public.has_app_role(p_role public.app_role, p_uid uuid default auth.uid())
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.user_roles ur
+    where ur.user_id = p_uid and ur.role = p_role
+  );
+$$;
+
+-- Nearby helper lookup from presence table.
+create or replace function public.nearby_helpers(
+  p_lat double precision,
+  p_lng double precision,
+  p_radius_m integer default 1500
+)
+returns table(helper_user_id uuid, distance_m integer)
+language sql
+stable
+set search_path = public
+as $$
+  select
+    up.user_id as helper_user_id,
+    st_distance(
+      up.geog,
+      st_setsrid(st_makepoint(p_lng, p_lat), 4326)::geography
+    )::integer as distance_m
+  from public.user_presence up
+  where up.last_seen > now() - interval '30 minutes'
+    and up.geog is not null
+    and st_dwithin(
+      up.geog,
+      st_setsrid(st_makepoint(p_lng, p_lat), 4326)::geography,
+      p_radius_m
+    )
+  order by distance_m asc
+  limit 100;
+$$;
+
 -- ===== RLS =====
 alter table public.contacts enable row level security;
 alter table public.incidents enable row level security;
@@ -149,6 +205,7 @@ alter table public.sos_actions enable row level security;
 alter table public.witness_requests enable row level security;
 alter table public.witness_responses enable row level security;
 alter table public.user_presence enable row level security;
+alter table public.user_roles enable row level security;
 
 -- Contacts: owner only
 drop policy if exists "contacts_select_own" on public.contacts;
@@ -256,8 +313,16 @@ drop policy if exists "witness_requests_update" on public.witness_requests;
 create policy "witness_requests_update"
 on public.witness_requests for update
 to authenticated
-using (user_id = auth.uid())
-with check (user_id = auth.uid());
+using (
+  user_id = auth.uid()
+  or public.has_app_role('ngo')
+  or public.has_app_role('admin')
+)
+with check (
+  user_id = auth.uid()
+  or public.has_app_role('ngo')
+  or public.has_app_role('admin')
+);
 
 drop policy if exists "witness_responses_read" on public.witness_responses;
 create policy "witness_responses_read"
@@ -270,6 +335,40 @@ create policy "witness_responses_write"
 on public.witness_responses for insert
 to authenticated
 with check (helper_user_id = auth.uid());
+
+-- User roles: users can read own role; admins can read/write all roles.
+drop policy if exists "roles_read_own_or_admin" on public.user_roles;
+create policy "roles_read_own_or_admin"
+on public.user_roles for select
+to authenticated
+using (user_id = auth.uid() or public.has_app_role('admin'));
+
+drop policy if exists "roles_admin_write" on public.user_roles;
+create policy "roles_admin_write"
+on public.user_roles for insert
+to authenticated
+with check (public.has_app_role('admin'));
+
+drop policy if exists "roles_admin_update" on public.user_roles;
+create policy "roles_admin_update"
+on public.user_roles for update
+to authenticated
+using (public.has_app_role('admin'))
+with check (public.has_app_role('admin'));
+
+drop policy if exists "roles_admin_delete" on public.user_roles;
+create policy "roles_admin_delete"
+on public.user_roles for delete
+to authenticated
+using (public.has_app_role('admin'));
+
+-- Incidents moderation (verification/update) allowed for NGO/Admin roles.
+drop policy if exists "incidents_update_moderator" on public.incidents;
+create policy "incidents_update_moderator"
+on public.incidents for update
+to authenticated
+using (public.has_app_role('ngo') or public.has_app_role('admin'))
+with check (public.has_app_role('ngo') or public.has_app_role('admin'));
 
 -- Presence: user can upsert own; anyone authenticated can read recent presence (for nearby helper UI)
 drop policy if exists "presence_read" on public.user_presence;

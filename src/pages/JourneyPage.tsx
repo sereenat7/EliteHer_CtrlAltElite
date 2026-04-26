@@ -6,8 +6,10 @@ import { Button } from '../components/ui/Button'
 import { Card, CardDescription, CardTitle } from '../components/ui/Card'
 import { Input } from '../components/ui/Input'
 import { Modal } from '../components/ui/Modal'
+import { evaluateRisk, type AIDetectionSettings, type JourneySample } from '../lib/aiSafety'
 import { env, mapStyleUrl } from '../lib/env'
 import { clearWatch, getCurrentPosition, watchPosition } from '../lib/location'
+import { getPref } from '../lib/prefs'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../app/auth/AuthProvider'
 
@@ -78,6 +80,16 @@ export function JourneyPage() {
   const [journeyId, setJourneyId] = useState<string | null>(null)
   const [watchId, setWatchId] = useState<string | null>(null)
   const [checkInOpen, setCheckInOpen] = useState(false)
+  const [lastRiskText, setLastRiskText] = useState<string | null>(null)
+  const [detectionSettings, setDetectionSettings] = useState<AIDetectionSettings>({
+    enabled: true,
+    stepDeviationMeters: 80,
+    noResponseSeconds: 25,
+    partyMovement: true,
+    sensitivity: 3,
+  })
+  const samplesRef = useRef<JourneySample[]>([])
+  const pendingEscalationRef = useRef<number | null>(null)
 
   const summary = useMemo(() => {
     if (!route) return null
@@ -154,6 +166,19 @@ export function JourneyPage() {
     }
   }, [query])
 
+  useEffect(() => {
+    ;(async () => {
+      const settings = await getPref<AIDetectionSettings>('ai_detection', {
+        enabled: true,
+        stepDeviationMeters: 80,
+        noResponseSeconds: 25,
+        partyMovement: true,
+        sensitivity: 3,
+      })
+      setDetectionSettings(settings)
+    })()
+  }, [])
+
   async function buildRoute(place: Place) {
     setBusy(true)
     try {
@@ -189,14 +214,37 @@ export function JourneyPage() {
         .select('id')
         .single()
       if (error) throw error
-      setJourneyId(data.id)
+      const currentJourneyId = data.id
+      setJourneyId(currentJourneyId)
 
       const id = await watchPosition(
-        (p) => {
-          // simple “check-in” heuristic: if accuracy is poor or speed spikes, prompt.
-          const acc = p.coords.accuracy ?? 0
-          const speed = p.coords.speed ?? 0
-          if (acc > 80 || speed > 18) setCheckInOpen(true)
+        async (p) => {
+          if (!dest) return
+          const sample: JourneySample = {
+            lat: p.coords.latitude,
+            lng: p.coords.longitude,
+            speed: p.coords.speed ?? 0,
+            accuracy: p.coords.accuracy ?? 0,
+            ts: Date.now(),
+          }
+          samplesRef.current = [...samplesRef.current.slice(-19), sample]
+          const risk = evaluateRisk(samplesRef.current, dest.center, detectionSettings)
+          if (risk.score > 0) setLastRiskText(`Risk ${risk.score}/100 • ${risk.reasons[0] ?? 'Monitoring active'}`)
+
+          if (risk.suspicious && !checkInOpen) {
+            setCheckInOpen(true)
+          }
+
+          if (risk.dangerous && !pendingEscalationRef.current) {
+            pendingEscalationRef.current = window.setTimeout(async () => {
+              pendingEscalationRef.current = null
+              await supabase.from('sos_events').insert({
+                journey_id: currentJourneyId,
+                level: 1,
+                status: 'triggered',
+              })
+            }, detectionSettings.noResponseSeconds * 1000)
+          }
         },
         () => undefined,
       )
@@ -223,6 +271,12 @@ export function JourneyPage() {
       setQuery('')
       if (watchId) await clearWatch(watchId)
       setWatchId(null)
+      samplesRef.current = []
+      setLastRiskText(null)
+      if (pendingEscalationRef.current) {
+        window.clearTimeout(pendingEscalationRef.current)
+        pendingEscalationRef.current = null
+      }
     } finally {
       setBusy(false)
     }
@@ -287,6 +341,11 @@ export function JourneyPage() {
         {summary ? (
           <div className="absolute left-3 top-3 rounded-xl border border-white/10 bg-black/50 px-3 py-2 text-xs text-zinc-200 backdrop-blur">
             Route: {summary}
+          </div>
+        ) : null}
+        {lastRiskText ? (
+          <div className="absolute bottom-3 left-3 rounded-xl border border-red-400/30 bg-black/60 px-3 py-2 text-xs text-red-100 backdrop-blur">
+            {lastRiskText}
           </div>
         ) : null}
       </div>
@@ -359,6 +418,10 @@ export function JourneyPage() {
               variant="danger"
               onClick={async () => {
                 setCheckInOpen(false)
+                if (pendingEscalationRef.current) {
+                  window.clearTimeout(pendingEscalationRef.current)
+                  pendingEscalationRef.current = null
+                }
                 // Trigger SOS escalation via DB row (pluggable providers)
                 await supabase.from('sos_events').insert({
                   journey_id: journeyId,

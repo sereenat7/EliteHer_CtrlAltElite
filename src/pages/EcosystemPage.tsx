@@ -1,8 +1,10 @@
 import { Activity, ArrowLeft, ShieldAlert } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Button } from '../components/ui/Button'
 import { Card, CardDescription, CardTitle } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'
+import { getMyRole, isModeratorRole, type AppRole } from '../lib/roles'
 import { supabase } from '../lib/supabase'
 import { formatRelative } from '../lib/utils'
 
@@ -17,6 +19,8 @@ type Incident = {
 
 export function EcosystemPage() {
   const [incidents, setIncidents] = useState<Incident[]>([])
+  const [role, setRole] = useState<AppRole>('user')
+  const [status, setStatus] = useState<string | null>(null)
 
   async function refresh() {
     const since = new Date(Date.now() - 1000 * 60 * 60 * 24 * 7).toISOString()
@@ -30,6 +34,9 @@ export function EcosystemPage() {
   }
 
   useEffect(() => {
+    ;(async () => {
+      setRole(await getMyRole())
+    })()
     refresh()
     const channel = supabase
       .channel('incidents-ecosystem')
@@ -69,8 +76,14 @@ export function EcosystemPage() {
           Ecosystem Dashboard <Badge>last 7 days</Badge>
         </CardTitle>
         <CardDescription className="mt-1">
-          Aggregated, real-time view for NGO/Admin access (built from real incidents in Supabase).
+          Aggregated, real-time view for NGO/Admin workflows (built from real incidents in Supabase).
         </CardDescription>
+      </Card>
+      <Card className="p-3">
+        <div className="text-xs text-zinc-400">
+          Access role: <span className="font-semibold text-zinc-200">{role.toUpperCase()}</span>
+        </div>
+        {status ? <div className="mt-2 text-sm text-zinc-200">{status}</div> : null}
       </Card>
 
       <div className="grid grid-cols-2 gap-2">
@@ -130,6 +143,28 @@ export function EcosystemPage() {
                 {formatRelative(i.created_at)}
                 {i.description ? ` • ${i.description}` : ''}
               </div>
+              {isModeratorRole(role) && !i.verified ? (
+                <div className="mt-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={async () => {
+                      const { error } = await supabase
+                        .from('incidents')
+                        .update({ verified: true })
+                        .eq('id', i.id)
+                      if (error) {
+                        setStatus(error.message)
+                        return
+                      }
+                      setStatus('Incident marked as verified.')
+                      await refresh()
+                    }}
+                  >
+                    Verify report
+                  </Button>
+                </div>
+              ) : null}
             </div>
           ))}
         </div>

@@ -220,10 +220,31 @@ export type Database = {
         Update: Partial<Database['public']['Tables']['user_presence']['Insert']>
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          user_id: string
+          role: 'user' | 'ngo' | 'admin'
+          created_at: string
+        }
+        Insert: {
+          user_id?: string
+          role?: 'user' | 'ngo' | 'admin'
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['user_roles']['Insert']>
+        Relationships: []
+      }
     }
     Views: Record<string, never>
-    Functions: Record<string, never>
-    Enums: Record<string, never>
+    Functions: {
+      nearby_helpers: {
+        Args: { p_lat: number; p_lng: number; p_radius_m?: number }
+        Returns: { helper_user_id: string; distance_m: number }[]
+      }
+    }
+    Enums: {
+      app_role: 'user' | 'ngo' | 'admin'
+    }
     CompositeTypes: Record<string, never>
   }
 }

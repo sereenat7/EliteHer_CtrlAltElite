@@ -51,7 +51,7 @@ export function AIDetectionPage() {
           AI Danger Detection <BrainCircuit className="h-4 w-4 text-zinc-300" />
         </CardTitle>
         <CardDescription className="mt-1">
-          UI for detection rules (step deviation, abnormal movement, no-response escalation).
+          Detection rules used by live Safe Journey monitoring (deviation, acceleration, stops, no-response).
         </CardDescription>
       </Card>
 
@@ -133,7 +133,7 @@ export function AIDetectionPage() {
           Test & calibration <ShieldAlert className="h-4 w-4 text-zinc-300" />
         </CardTitle>
         <CardDescription>
-          UI-only test triggers (simulates what the on-device model would detect).
+          Test triggers for calibration; live risk scoring now runs in Safe Journey mode.
         </CardDescription>
         {status ? <div className="text-sm text-zinc-200">{status}</div> : null}
         <div className="grid grid-cols-2 gap-2">

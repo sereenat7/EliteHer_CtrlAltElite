@@ -11,6 +11,7 @@ supabase functions deploy sos-escalate
 supabase functions deploy send-sms
 supabase functions deploy send-push
 supabase functions deploy presence-heartbeat
+supabase functions deploy nearby-alert
 ```
 
 Required secrets (set in Supabase project):

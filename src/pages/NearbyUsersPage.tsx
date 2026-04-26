@@ -1,10 +1,13 @@
 import { ArrowLeft, BellRing, Users2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useAuth } from '../app/auth/AuthProvider'
 import { Button } from '../components/ui/Button'
 import { Card, CardDescription, CardTitle } from '../components/ui/Card'
 import { Switch } from '../components/ui/Switch'
+import { getCurrentPosition } from '../lib/location'
 import { getPref, setPref } from '../lib/prefs'
+import { supabase } from '../lib/supabase'
 
 type Prefs = {
   allowNearbyAlerts: boolean
@@ -17,8 +20,10 @@ const DEFAULTS: Prefs = {
 }
 
 export function NearbyUsersPage() {
+  const { session } = useAuth()
   const [p, setP] = useState<Prefs>(DEFAULTS)
   const [status, setStatus] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
 
   useEffect(() => {
     ;(async () => setP(await getPref('nearby_users', DEFAULTS)))()
@@ -42,7 +47,7 @@ export function NearbyUsersPage() {
           Nearby users alerted <Users2 className="h-4 w-4 text-zinc-300" />
         </CardTitle>
         <CardDescription className="mt-1">
-          UI for community alerts (“nearby users notified”). Backend delivery (push/SMS) is wired later.
+          Community alerts are broadcast to nearby helpers using presence + optional push delivery.
         </CardDescription>
       </Card>
 
@@ -72,18 +77,62 @@ export function NearbyUsersPage() {
 
       <Card className="space-y-2">
         <CardTitle className="flex items-center gap-2">
-          Demo alert broadcast <BellRing className="h-4 w-4 text-zinc-300" />
+          Alert broadcast <BellRing className="h-4 w-4 text-zinc-300" />
         </CardTitle>
-        <CardDescription>UI-only preview of the experience.</CardDescription>
+        <CardDescription>Uses real backend flow via `nearby-alert` and presence data.</CardDescription>
         {status ? <div className="text-sm text-zinc-200">{status}</div> : null}
         <div className="grid grid-cols-2 gap-2">
           <Button
             variant="secondary"
-            onClick={() => setStatus('Simulated: 0 nearby users available right now.')}
+            disabled={busy || !session}
+            onClick={async () => {
+              setBusy(true)
+              setStatus(null)
+              try {
+                const pos = await getCurrentPosition()
+                const { data, error } = await supabase.rpc('nearby_helpers', {
+                  p_lat: pos.coords.latitude,
+                  p_lng: pos.coords.longitude,
+                  p_radius_m: 1500,
+                })
+                if (error) throw error
+                const count = (data ?? []).length
+                setStatus(`Found ${count} nearby helper(s) in the last 30 minutes.`)
+              } catch (e: any) {
+                setStatus(e?.message ?? 'Failed to check nearby helpers')
+              } finally {
+                setBusy(false)
+              }
+            }}
           >
             Check nearby
           </Button>
-          <Button onClick={() => setStatus('Simulated: Alert broadcast queued (push/SMS wiring pending).')}>
+          <Button
+            disabled={busy || !session}
+            onClick={async () => {
+              setBusy(true)
+              setStatus(null)
+              try {
+                const pos = await getCurrentPosition()
+                const { data, error } = await supabase.functions.invoke('nearby-alert', {
+                  body: {
+                    lat: pos.coords.latitude,
+                    lng: pos.coords.longitude,
+                    message: 'Nearby safety alert from Saaya. Tap to offer help.',
+                    radius_m: 1500,
+                  },
+                })
+                if (error) throw error
+                setStatus(
+                  `Broadcast created. Nearby helpers: ${data?.helper_count ?? 0}, push notified: ${data?.notified ?? 0}.`,
+                )
+              } catch (e: any) {
+                setStatus(e?.message ?? 'Failed to broadcast nearby alert')
+              } finally {
+                setBusy(false)
+              }
+            }}
+          >
             Broadcast
           </Button>
         </div>
