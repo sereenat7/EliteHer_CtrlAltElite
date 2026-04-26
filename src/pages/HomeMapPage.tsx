@@ -1,9 +1,10 @@
 import maplibregl, { type GeoJSONSource, type Map as MapLibreMap } from 'maplibre-gl'
-import { LocateFixed, Navigation, ShieldAlert } from 'lucide-react'
+import { LocateFixed, Navigation, ShieldAlert, Siren, Sparkles, Users } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { QuickReportModal } from '../components/QuickReportModal'
+import { AppLogo } from '../components/AppLogo'
 import { Button } from '../components/ui/Button'
 import { Card, CardDescription, CardTitle } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'
@@ -316,6 +317,9 @@ export function HomeMapPage() {
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
+            <div className="hidden sm:block">
+              <AppLogo showWordmark={false} />
+            </div>
             <Button variant="secondary" size="sm" onClick={() => setQuickOpen(true)}>
               {t('map.quick')}
             </Button>
@@ -392,6 +396,45 @@ export function HomeMapPage() {
           </div>
         </div>
       </div>
+
+      <Card className="space-y-2">
+        <CardTitle className="flex items-center gap-2">
+          Saaya smart safety suite <Sparkles className="h-4 w-4 text-pink-200" />
+        </CardTitle>
+        <CardDescription>Designed to keep you protected before, during, and after risk.</CardDescription>
+        <div className="mt-2 grid grid-cols-1 gap-2">
+          <Link to="/app/sos">
+            <div className="rounded-xl border border-red-300/25 bg-red-500/10 px-3 py-3 transition hover:bg-red-500/15">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <Siren className="h-4 w-4 text-red-200" /> One-touch SOS escalation
+              </div>
+              <div className="mt-1 text-xs text-zinc-300">
+                Silent triggers, escalation levels, and emergency actions in seconds.
+              </div>
+            </div>
+          </Link>
+          <Link to="/app/alerts">
+            <div className="rounded-xl border border-amber-300/25 bg-amber-500/10 px-3 py-3 transition hover:bg-amber-500/15">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <ShieldAlert className="h-4 w-4 text-amber-200" /> Real-time threat alerts
+              </div>
+              <div className="mt-1 text-xs text-zinc-300">
+                Nearby incident intelligence with demo live feed and risk prioritization.
+              </div>
+            </div>
+          </Link>
+          <Link to="/app/nearby-users">
+            <div className="rounded-xl border border-cyan-300/25 bg-cyan-500/10 px-3 py-3 transition hover:bg-cyan-500/15">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <Users className="h-4 w-4 text-cyan-200" /> Community witness network
+              </div>
+              <div className="mt-1 text-xs text-zinc-300">
+                Share live context with nearby helpers and trusted contacts.
+              </div>
+            </div>
+          </Link>
+        </div>
+      </Card>
 
       {selected ? (
         <Card className="border-amber-400/25 bg-amber-500/10">

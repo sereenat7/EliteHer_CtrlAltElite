@@ -46,13 +46,29 @@ function LandingPage() {
   return (
     <div className="bg-app min-h-full px-5 pb-8 pt-6 text-zinc-100">
       <div className="mx-auto w-full max-w-md space-y-4">
-        <div className="rounded-3xl border border-pink-300/20 bg-black/40 p-6 backdrop-blur">
-          <AppLogo className="justify-center" showWordmark />
-          <div className="mt-5 text-center">
-            <div className="text-3xl font-extrabold tracking-tight">Your Guardian in the Dark.</div>
+        <div className="overflow-hidden rounded-3xl border border-pink-300/20 bg-black/40 backdrop-blur">
+          <div className="relative">
+            <img
+              src="https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=1200&q=80"
+              alt="Woman walking confidently at night in the city"
+              className="h-52 w-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/35 to-transparent" />
+            <div className="landing-quote-glow absolute inset-x-3 bottom-14 rounded-xl border border-white/15 bg-black/45 px-3 py-2 backdrop-blur">
+              <div className="landing-quote-text text-xs font-semibold text-pink-100">
+                "Tonight, I made it home safe. Saaya stayed with me all the way."
+              </div>
+            </div>
+            <div className="absolute bottom-3 left-3">
+              <AppLogo showWordmark />
+            </div>
+          </div>
+          <div className="p-6 pt-4">
+          <div className="text-center">
+            <div className="text-3xl font-extrabold tracking-tight">You are never alone.</div>
             <p className="mt-2 text-sm text-zinc-300">
-              Saaya predicts risk, triggers smart safety actions, and keeps help close even when
-              you cannot reach your phone.
+              Saaya stands beside every woman with intelligent protection, instant SOS action, and
+              community support that reaches you when it matters most.
             </p>
           </div>
           <div className="mt-5 space-y-2">
@@ -66,8 +82,9 @@ function LandingPage() {
               to="/app/alerts"
               className="block rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-center text-sm font-semibold text-zinc-100 transition hover:bg-white/10"
             >
-              See it in Action
+              See Live Safety Action
             </Link>
+          </div>
           </div>
         </div>
 
@@ -89,6 +106,17 @@ function LandingPage() {
         <div className="rounded-2xl border border-white/10 bg-black/25 p-4 text-xs text-zinc-300">
           Hidden mode, low-battery fallback, offline escalation, and digital witness support are
           built in to keep protection always on.
+        </div>
+
+        <div className="rounded-2xl border border-pink-300/25 bg-gradient-to-r from-pink-500/15 to-purple-500/15 p-4">
+          <div className="text-xs font-semibold uppercase tracking-wider text-pink-100">
+            Saaya Story
+          </div>
+          <div className="mt-1 text-sm font-bold text-white">She reached home safe.</div>
+          <div className="mt-1 text-xs text-zinc-200">
+            Route watched. Alerts monitored. SOS ready. This is what women-first safety should feel
+            like: calm, supported, and protected.
+          </div>
         </div>
 
         <div className="space-y-2">
@@ -121,17 +149,20 @@ function AppGate({ children }: { children: React.ReactNode }) {
       <div className="bg-app grid h-full place-items-center px-6">
         <div className="w-full max-w-xs rounded-3xl border border-white/10 bg-black/30 p-6 text-center backdrop-blur">
           <div className="saaya-loader-perspective mx-auto">
-            <div className="saaya-loader-cube">
-              <div className="saaya-face saaya-face-front">S</div>
-              <div className="saaya-face saaya-face-back">S</div>
-              <div className="saaya-face saaya-face-right">S</div>
-              <div className="saaya-face saaya-face-left">S</div>
-              <div className="saaya-face saaya-face-top">S</div>
-              <div className="saaya-face saaya-face-bottom">S</div>
+            <div className="saaya-loader-safety-core">
+              <div className="saaya-safety-ring saaya-safety-ring-outer" />
+              <div className="saaya-safety-ring saaya-safety-ring-mid" />
+              <div className="saaya-safety-ring saaya-safety-ring-inner" />
+              <div className="saaya-safety-badge">
+                <div className="saaya-safety-badge-title">HER SAFE</div>
+                <div className="saaya-safety-badge-sub">LIVE SHIELD</div>
+              </div>
             </div>
           </div>
           <AppLogo className="mt-5 justify-center" showWordmark />
-          <div className="mt-3 text-xs text-zinc-300">Preparing live safety heatmap...</div>
+          <div className="mt-3 text-xs text-zinc-300">
+            Activating women safety shield, SOS layers, and live map intelligence...
+          </div>
         </div>
       </div>
     )
