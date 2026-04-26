@@ -13,11 +13,11 @@ export type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
 
 const variantClasses: Record<Variant, string> = {
   primary:
-    'bg-pink-500 text-white hover:bg-pink-400 active:bg-pink-500/90 disabled:bg-pink-500/40',
+    'bg-gradient-to-b from-pink-400 to-pink-600 text-white shadow-[0_14px_40px_-22px_rgba(236,72,153,0.8)] hover:from-pink-300 hover:to-pink-500 active:from-pink-400 active:to-pink-600 disabled:opacity-50',
   secondary:
-    'bg-white/10 text-white hover:bg-white/15 active:bg-white/10 disabled:bg-white/5',
+    'bg-white/10 text-white hover:bg-white/15 active:bg-white/10 disabled:opacity-60',
   danger:
-    'bg-red-500 text-white hover:bg-red-400 active:bg-red-500/90 disabled:bg-red-500/40',
+    'bg-gradient-to-b from-red-400 to-red-600 text-white hover:from-red-300 hover:to-red-500 active:from-red-400 active:to-red-600 disabled:opacity-50',
   ghost: 'bg-transparent text-zinc-200 hover:bg-white/10 active:bg-white/10',
 }
 
@@ -39,7 +39,7 @@ export function Button({
   return (
     <button
       className={cn(
-        'inline-flex items-center justify-center gap-2 rounded-xl font-semibold ring-1 ring-white/10 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-300 disabled:cursor-not-allowed',
+        'inline-flex items-center justify-center gap-2 rounded-xl font-semibold ring-1 ring-white/10 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-300/50 disabled:cursor-not-allowed',
         variantClasses[variant],
         sizeClasses[size],
         className,
@@ -52,4 +52,3 @@ export function Button({
     </button>
   )
 }
-

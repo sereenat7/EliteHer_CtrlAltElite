@@ -1,0 +1,30 @@
+{
+  "app": { "name": "Saaya", "tagline": "Prevent • Protect • Empower" },
+  "tabs": {
+    "map": "ਮੈਪ",
+    "alerts": "ਅਲਰਟ",
+    "journey": "ਯਾਤਰਾ",
+    "report": "ਰਿਪੋਰਟ",
+    "sos": "SOS",
+    "settings": "ਸੈਟਿੰਗਜ਼"
+  },
+  "common": {
+    "back": "ਵਾਪਸ",
+    "close": "ਬੰਦ",
+    "update": "ਅਪਡੇਟ",
+    "me": "ਮੈਂ",
+    "save": "ਸੇਵ",
+    "cancel": "ਰੱਦ",
+    "start": "ਸ਼ੁਰੂ",
+    "stop": "ਰੋਕੋ"
+  },
+  "map": {
+    "title": "ਸੇਫਟੀ ਹੀਟਮੈਪ",
+    "subtitle": "ਲਾਈਵ ਕਮਿਊਨਿਟੀ ਰਿਪੋਰਟਾਂ (ਮੌਕ ਡਾਟਾ ਨਹੀਂ)।",
+    "quick": "ਕੁਇੱਕ",
+    "safeJourney": "ਸੇਫ ਜਰਨੀ",
+    "report": "ਰਿਪੋਰਟ"
+  },
+  "lang": { "switch": "ਭਾਸ਼ਾ" }
+}
+

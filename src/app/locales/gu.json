@@ -1,0 +1,30 @@
+{
+  "app": { "name": "Saaya", "tagline": "Prevent • Protect • Empower" },
+  "tabs": {
+    "map": "મેપ",
+    "alerts": "એલર્ટ્સ",
+    "journey": "પ્રવાસ",
+    "report": "રિપોર્ટ",
+    "sos": "SOS",
+    "settings": "સેટિંગ્સ"
+  },
+  "common": {
+    "back": "પાછા",
+    "close": "બંધ",
+    "update": "અપડેટ",
+    "me": "હું",
+    "save": "સેવ",
+    "cancel": "રદ",
+    "start": "શરૂ",
+    "stop": "બંધ"
+  },
+  "map": {
+    "title": "સેફ્ટી હીટમેપ",
+    "subtitle": "લાઈવ કમ્યુનિટી રિપોર્ટ્સ (મોક ડેટા નથી).",
+    "quick": "ક્વિક",
+    "safeJourney": "સેફ જર્ની",
+    "report": "રિપોર્ટ"
+  },
+  "lang": { "switch": "ભાષા" }
+}
+

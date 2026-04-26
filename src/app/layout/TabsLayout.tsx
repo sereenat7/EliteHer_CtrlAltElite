@@ -1,16 +1,19 @@
 import { AlertTriangle, Bell, Map, Route, Settings, Siren, ShieldPlus } from 'lucide-react'
 import { NavLink, Outlet } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { LanguagePicker } from '../../components/LanguagePicker'
 import { cn } from '../../lib/utils'
 
-const tabs = [
-  { to: '/', label: 'Map', icon: Map, end: true },
-  { to: '/alerts', label: 'Alerts', icon: Bell },
-  { to: '/journey', label: 'Journey', icon: Route },
-  { to: '/report', label: 'Report', icon: ShieldPlus },
-  { to: '/sos', label: 'SOS', icon: Siren },
-]
-
 export function TabsLayout() {
+  const { t } = useTranslation()
+  const tabs = [
+    { to: '/', label: t('tabs.map'), icon: Map, end: true },
+    { to: '/alerts', label: t('tabs.alerts'), icon: Bell },
+    { to: '/journey', label: t('tabs.journey'), icon: Route },
+    { to: '/report', label: t('tabs.report'), icon: ShieldPlus },
+    { to: '/sos', label: t('tabs.sos'), icon: Siren },
+  ]
+
   return (
     <div className="bg-app h-full text-zinc-100">
       <div className="mx-auto flex h-full max-w-md flex-col">
@@ -20,22 +23,25 @@ export function TabsLayout() {
               <AlertTriangle className="h-5 w-5 text-pink-200" />
             </div>
             <div className="leading-tight">
-              <div className="text-sm font-semibold tracking-tight">Saaya</div>
-              <div className="text-xs text-zinc-400">Prevent • Protect • Empower</div>
+              <div className="text-sm font-semibold tracking-tight">{t('app.name')}</div>
+              <div className="text-xs text-zinc-400">{t('app.tagline')}</div>
             </div>
           </div>
-          <NavLink
-            to="/settings"
-            className={({ isActive }) =>
-              cn(
-                'grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/5 text-zinc-200 transition hover:bg-white/10',
-                isActive ? 'ring-2 ring-pink-300/30' : '',
-              )
-            }
-            aria-label="Settings"
-          >
-            <Settings className="h-5 w-5" />
-          </NavLink>
+          <div className="flex items-center gap-2">
+            <LanguagePicker />
+            <NavLink
+              to="/settings"
+              className={({ isActive }) =>
+                cn(
+                  'grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/5 text-zinc-200 transition hover:bg-white/10',
+                  isActive ? 'ring-2 ring-pink-300/30' : '',
+                )
+              }
+              aria-label={t('tabs.settings')}
+            >
+              <Settings className="h-5 w-5" />
+            </NavLink>
+          </div>
         </header>
 
         <main className="flex-1 overflow-auto px-4 pb-24">

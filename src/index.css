@@ -20,7 +20,32 @@ body {
 /* Subtle “safety” brand vibe */
 .bg-app {
   background:
-    radial-gradient(1200px 600px at 20% 0%, rgba(236, 72, 153, 0.18), transparent 55%),
-    radial-gradient(900px 500px at 80% 20%, rgba(168, 85, 247, 0.16), transparent 55%),
-    linear-gradient(to bottom, rgb(9 9 11), rgb(0 0 0));
+    radial-gradient(1100px 520px at 18% -6%, rgba(236, 72, 153, 0.28), transparent 55%),
+    radial-gradient(900px 540px at 82% 18%, rgba(217, 70, 239, 0.20), transparent 60%),
+    radial-gradient(1200px 700px at 50% 110%, rgba(236, 72, 153, 0.10), transparent 55%),
+    linear-gradient(to bottom, rgb(10 10 12), rgb(0 0 0));
+}
+
+/* Premium pink glow focus */
+:focus-visible {
+  outline: none;
+}
+
+/* Better scrollbars on desktop */
+@media (hover: hover) and (pointer: fine) {
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    border: 2px solid rgba(0, 0, 0, 0);
+    background-clip: padding-box;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.18);
+    border: 2px solid rgba(0, 0, 0, 0);
+    background-clip: padding-box;
+  }
 }

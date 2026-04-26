@@ -1,0 +1,30 @@
+{
+  "app": { "name": "Saaya", "tagline": "Prevent • Protect • Empower" },
+  "tabs": {
+    "map": "మ్యాప్",
+    "alerts": "అలర్ట్స్",
+    "journey": "ప్రయాణం",
+    "report": "రిపోర్ట్",
+    "sos": "SOS",
+    "settings": "సెట్టింగ్స్"
+  },
+  "common": {
+    "back": "వెనుకకు",
+    "close": "మూసివేయి",
+    "update": "అప్‌డేట్",
+    "me": "నేను",
+    "save": "సేవ్",
+    "cancel": "రద్దు",
+    "start": "ప్రారంభించు",
+    "stop": "ఆపు"
+  },
+  "map": {
+    "title": "సేఫ్టీ హీట్‌మ్యాప్",
+    "subtitle": "లైవ్ కమ్యూనిటీ రిపోర్ట్స్ (మాక్ డేటా లేదు).",
+    "quick": "త్వరిత",
+    "safeJourney": "సేఫ్ జర్నీ",
+    "report": "రిపోర్ట్"
+  },
+  "lang": { "switch": "భాష" }
+}
+

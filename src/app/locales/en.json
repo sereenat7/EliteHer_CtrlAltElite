@@ -1,0 +1,35 @@
+{
+  "app": {
+    "name": "Saaya",
+    "tagline": "Prevent • Protect • Empower"
+  },
+  "tabs": {
+    "map": "Map",
+    "alerts": "Alerts",
+    "journey": "Journey",
+    "report": "Report",
+    "sos": "SOS",
+    "settings": "Settings"
+  },
+  "common": {
+    "back": "Back",
+    "close": "Close",
+    "update": "Update",
+    "me": "Me",
+    "save": "Save",
+    "cancel": "Cancel",
+    "start": "Start",
+    "stop": "Stop"
+  },
+  "map": {
+    "title": "Safety Heatmap",
+    "subtitle": "Live community reports (no seeded data).",
+    "quick": "Quick",
+    "safeJourney": "Safe Journey",
+    "report": "Report"
+  },
+  "lang": {
+    "switch": "Language"
+  }
+}
+

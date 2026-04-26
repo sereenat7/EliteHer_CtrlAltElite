@@ -1,0 +1,35 @@
+{
+  "app": {
+    "name": "Saaya",
+    "tagline": "Prevent • Protect • Empower"
+  },
+  "tabs": {
+    "map": "मैप",
+    "alerts": "अलर्ट",
+    "journey": "यात्रा",
+    "report": "रिपोर्ट",
+    "sos": "SOS",
+    "settings": "सेटिंग्स"
+  },
+  "common": {
+    "back": "वापस",
+    "close": "बंद करें",
+    "update": "अपडेट",
+    "me": "मैं",
+    "save": "सेव",
+    "cancel": "रद्द",
+    "start": "शुरू",
+    "stop": "रोकें"
+  },
+  "map": {
+    "title": "सुरक्षा हीटमैप",
+    "subtitle": "लाइव कम्युनिटी रिपोर्ट (कोई मॉक डेटा नहीं)।",
+    "quick": "क्विक",
+    "safeJourney": "सेफ जर्नी",
+    "report": "रिपोर्ट"
+  },
+  "lang": {
+    "switch": "भाषा"
+  }
+}
+

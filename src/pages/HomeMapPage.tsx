@@ -2,6 +2,7 @@ import maplibregl, { type GeoJSONSource, type Map as MapLibreMap } from 'maplibr
 import { LocateFixed, Navigation, ShieldAlert } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { QuickReportModal } from '../components/QuickReportModal'
 import { Button } from '../components/ui/Button'
 import { Card, CardDescription, CardTitle } from '../components/ui/Card'
@@ -40,6 +41,7 @@ function incidentsToGeoJson(incidents: Incident[]) {
 }
 
 export function HomeMapPage() {
+  const { t } = useTranslation()
   const mapRef = useRef<MapLibreMap | null>(null)
   const mapDivRef = useRef<HTMLDivElement | null>(null)
   const [incidents, setIncidents] = useState<Incident[]>([])
@@ -203,15 +205,15 @@ export function HomeMapPage() {
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <CardTitle className="flex items-center gap-2">
-              Safety Heatmap <Badge>{incidents.length} reports</Badge>
+              {t('map.title')} <Badge>{incidents.length} reports</Badge>
             </CardTitle>
             <CardDescription className="mt-1">
-              Live community reports (no seeded data).
+              {t('map.subtitle')}
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="secondary" size="sm" onClick={() => setQuickOpen(true)}>
-              Quick
+              {t('map.quick')}
             </Button>
             <Button
               variant="secondary"
@@ -219,7 +221,7 @@ export function HomeMapPage() {
               onClick={centerOnMe}
               leftIcon={<LocateFixed className="h-4 w-4" />}
             >
-              Me
+              {t('common.me')}
             </Button>
           </div>
         </div>
@@ -261,12 +263,12 @@ export function HomeMapPage() {
           <div className="grid grid-cols-2 gap-2">
             <Link to="/journey">
               <Button className="w-full" leftIcon={<Navigation className="h-4 w-4" />}>
-                Safe Journey
+                {t('map.safeJourney')}
               </Button>
             </Link>
             <Link to="/report">
               <Button variant="secondary" className="w-full">
-                Report
+                {t('map.report')}
               </Button>
             </Link>
           </div>

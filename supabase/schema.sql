@@ -80,12 +80,58 @@ create table if not exists public.evidence_files (
 );
 create index if not exists evidence_user_created_idx on public.evidence_files (user_id, created_at desc);
 
+-- Devices (push tokens)
+create table if not exists public.devices (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  platform text not null default 'web',
+  push_token text,
+  created_at timestamptz not null default now()
+);
+create index if not exists devices_user_idx on public.devices (user_id, created_at desc);
+
+-- SOS action audit log (escalation steps)
+create table if not exists public.sos_actions (
+  id uuid primary key default gen_random_uuid(),
+  sos_event_id uuid not null references public.sos_events(id) on delete cascade,
+  action text not null,
+  meta jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+create index if not exists sos_actions_event_idx on public.sos_actions (sos_event_id, created_at desc);
+
+-- Community help (digital witnesses)
+create table if not exists public.witness_requests (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  sos_event_id uuid references public.sos_events(id) on delete set null,
+  message text,
+  lat double precision,
+  lng double precision,
+  status text not null default 'open', -- open/closed
+  created_at timestamptz not null default now()
+);
+create index if not exists witness_requests_created_idx on public.witness_requests (created_at desc);
+
+create table if not exists public.witness_responses (
+  id uuid primary key default gen_random_uuid(),
+  request_id uuid not null references public.witness_requests(id) on delete cascade,
+  helper_user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  status text not null default 'offered', -- offered/accepted/cancelled
+  created_at timestamptz not null default now()
+);
+create index if not exists witness_responses_req_idx on public.witness_responses (request_id, created_at desc);
+
 -- ===== RLS =====
 alter table public.contacts enable row level security;
 alter table public.incidents enable row level security;
 alter table public.journeys enable row level security;
 alter table public.sos_events enable row level security;
 alter table public.evidence_files enable row level security;
+alter table public.devices enable row level security;
+alter table public.sos_actions enable row level security;
+alter table public.witness_requests enable row level security;
+alter table public.witness_responses enable row level security;
 
 -- Contacts: owner only
 drop policy if exists "contacts_select_own" on public.contacts;
@@ -155,6 +201,58 @@ on public.evidence_files for all
 to authenticated
 using (user_id = auth.uid())
 with check (user_id = auth.uid());
+
+-- Devices: owner only
+drop policy if exists "devices_own" on public.devices;
+create policy "devices_own"
+on public.devices for all
+to authenticated
+using (user_id = auth.uid())
+with check (user_id = auth.uid());
+
+-- SOS actions: only readable by owner via join with sos_events
+drop policy if exists "sos_actions_read" on public.sos_actions;
+create policy "sos_actions_read"
+on public.sos_actions for select
+to authenticated
+using (
+  exists (
+    select 1 from public.sos_events se
+    where se.id = sos_actions.sos_event_id and se.user_id = auth.uid()
+  )
+);
+
+-- Witness requests/responses: UI-first policies (authenticated can read open requests; only owner can write own)
+drop policy if exists "witness_requests_read" on public.witness_requests;
+create policy "witness_requests_read"
+on public.witness_requests for select
+to authenticated
+using (true);
+
+drop policy if exists "witness_requests_write" on public.witness_requests;
+create policy "witness_requests_write"
+on public.witness_requests for insert
+to authenticated
+with check (user_id = auth.uid());
+
+drop policy if exists "witness_requests_update" on public.witness_requests;
+create policy "witness_requests_update"
+on public.witness_requests for update
+to authenticated
+using (user_id = auth.uid())
+with check (user_id = auth.uid());
+
+drop policy if exists "witness_responses_read" on public.witness_responses;
+create policy "witness_responses_read"
+on public.witness_responses for select
+to authenticated
+using (true);
+
+drop policy if exists "witness_responses_write" on public.witness_responses;
+create policy "witness_responses_write"
+on public.witness_responses for insert
+to authenticated
+with check (helper_user_id = auth.uid());
 
 -- ===== Storage bucket + policies =====
 -- Create bucket "evidence" (public = false).

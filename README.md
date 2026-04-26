@@ -20,6 +20,17 @@ This is a **working** Saaya v1 app (no seeded/mock incident data). All data show
    - **Project URL**
    - **Anon public key**
 
+## 1b) Backend integrations (Twilio + Push)
+For “Full integrations” (SMS/calls + push), deploy the Edge Functions in `supabase/functions/` and set secrets:
+- Twilio: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM`
+- FCM: `FCM_SERVER_KEY`
+
+These are set in Supabase (do not commit to GitHub):
+```bash
+supabase secrets set TWILIO_ACCOUNT_SID=... TWILIO_AUTH_TOKEN=... TWILIO_FROM=...
+supabase secrets set FCM_SERVER_KEY=...
+```
+
 ## 2) Map setup (MapTiler Cloud)
 1. Create a MapTiler Cloud API key.
 2. (Optional) Set `VITE_MAPTILER_MAP_ID` (defaults to `streets-v4`).

@@ -1,0 +1,30 @@
+{
+  "app": { "name": "Saaya", "tagline": "Prevent • Protect • Empower" },
+  "tabs": {
+    "map": "মানচিত্র",
+    "alerts": "সতর্কতা",
+    "journey": "যাত্রা",
+    "report": "রিপোর্ট",
+    "sos": "SOS",
+    "settings": "সেটিংস"
+  },
+  "common": {
+    "back": "ফিরে যান",
+    "close": "বন্ধ",
+    "update": "আপডেট",
+    "me": "আমি",
+    "save": "সংরক্ষণ",
+    "cancel": "বাতিল",
+    "start": "শুরু",
+    "stop": "থামুন"
+  },
+  "map": {
+    "title": "সেফটি হিটম্যাপ",
+    "subtitle": "লাইভ কমিউনিটি রিপোর্ট (মক ডেটা নেই)।",
+    "quick": "দ্রুত",
+    "safeJourney": "সেফ জার্নি",
+    "report": "রিপোর্ট"
+  },
+  "lang": { "switch": "ভাষা" }
+}
+

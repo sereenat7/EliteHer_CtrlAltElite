@@ -1,0 +1,30 @@
+{
+  "app": { "name": "Saaya", "tagline": "Prevent • Protect • Empower" },
+  "tabs": {
+    "map": "வரைபடம்",
+    "alerts": "எச்சரிக்கைகள்",
+    "journey": "பயணம்",
+    "report": "அறிக்கை",
+    "sos": "SOS",
+    "settings": "அமைப்புகள்"
+  },
+  "common": {
+    "back": "மீண்டும்",
+    "close": "மூடு",
+    "update": "புதுப்பி",
+    "me": "நான்",
+    "save": "சேமி",
+    "cancel": "ரத்து",
+    "start": "தொடங்கு",
+    "stop": "நிறுத்து"
+  },
+  "map": {
+    "title": "பாதுகாப்பு ஹீட்மாப்",
+    "subtitle": "நேரடி சமூக அறிக்கைகள் (மொக் டேட்டா இல்லை).",
+    "quick": "விரைவு",
+    "safeJourney": "பாதுகாப்பு பயணம்",
+    "report": "அறிக்கை"
+  },
+  "lang": { "switch": "மொழி" }
+}
+
