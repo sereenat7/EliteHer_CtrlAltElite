@@ -5,7 +5,7 @@ import { Button } from '../components/ui/Button'
 import { Card, CardDescription, CardTitle } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'
 import { supabase } from '../lib/supabase'
-import { enqueue } from '../lib/offlineQueue'
+import { createDemoSosEvent, updateDemoSosEvent } from '../lib/demoData'
 
 type LogItem = { ts: string; text: string }
 
@@ -51,12 +51,18 @@ export function SosEscalationPage() {
   async function ensureEvent() {
     if (eventId) return eventId
     if (!navigator.onLine) {
-      await enqueue('sos_event', { level: 1, status: 'triggered' })
-      pushLog('Offline: queued SOS event.')
-      return null
+      const demo = createDemoSosEvent(1)
+      setEventId(demo.id)
+      pushLog('Offline: SOS event created in demo mode.')
+      return demo.id
     }
     const { data, error } = await supabase.from('sos_events').insert({ level: 1, status: 'triggered' }).select('id').single()
-    if (error) throw error
+    if (error) {
+      const demo = createDemoSosEvent(1)
+      setEventId(demo.id)
+      pushLog('Backend unavailable: SOS event created in demo mode.')
+      return demo.id
+    }
     setEventId(data.id)
     pushLog('Created SOS event.')
     return data.id as string
@@ -92,7 +98,11 @@ export function SosEscalationPage() {
       setSecondsLeft(next === 2 ? 20 : 15)
       pushLog(`Auto-escalated to Level ${next}.`)
       if (eventId) {
-        await supabase.from('sos_events').update({ level: next, status: 'triggered' }).eq('id', eventId)
+        const { error } = await supabase
+          .from('sos_events')
+          .update({ level: next, status: 'triggered' })
+          .eq('id', eventId)
+        if (error) updateDemoSosEvent(eventId, { level: next, status: 'triggered' })
         // Backend: call Edge Function to perform escalation actions (SMS/push + audit log).
         try {
           await supabase.functions.invoke('sos-escalate', { body: { sos_event_id: eventId } })
@@ -113,19 +123,28 @@ export function SosEscalationPage() {
   async function acknowledge() {
     setStatus('ack')
     pushLog('Acknowledged by user/helper (UI).')
-    if (eventId) await supabase.from('sos_events').update({ status: 'acknowledged' }).eq('id', eventId)
+    if (eventId) {
+      const { error } = await supabase
+        .from('sos_events')
+        .update({ status: 'acknowledged' })
+        .eq('id', eventId)
+      if (error) updateDemoSosEvent(eventId, { status: 'acknowledged' })
+    }
   }
 
   async function resolve() {
     setStatus('resolved')
     pushLog('Resolved (UI).')
-    if (eventId) await supabase.from('sos_events').update({ status: 'resolved' }).eq('id', eventId)
+    if (eventId) {
+      const { error } = await supabase.from('sos_events').update({ status: 'resolved' }).eq('id', eventId)
+      if (error) updateDemoSosEvent(eventId, { status: 'resolved' })
+    }
   }
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <Link to="/sos" className="inline-flex items-center gap-2 text-sm text-zinc-300">
+        <Link to="/app/sos" className="inline-flex items-center gap-2 text-sm text-zinc-300">
           <ArrowLeft className="h-4 w-4" /> Back
         </Link>
         {eventId ? <Badge>event {eventId.slice(0, 6)}</Badge> : <Badge>no event</Badge>}

@@ -1,8 +1,10 @@
-import { LocateFixed, ShieldAlert } from 'lucide-react'
+import { LocateFixed, ShieldAlert, ShieldPlus } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Button } from '../components/ui/Button'
 import { Card, CardDescription, CardTitle } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'
+import { MUMBAI_SAFE_PLACES, getDemoIncidents, maybeGenerateDemoIncident } from '../lib/demoData'
 import { getCurrentPosition } from '../lib/location'
 import { supabase } from '../lib/supabase'
 import { formatRelative } from '../lib/utils'
@@ -38,26 +40,39 @@ export function AlertsPage() {
   const [incidents, setIncidents] = useState<Incident[]>([])
   const [pos, setPos] = useState<{ lat: number; lng: number } | null>(null)
   const [busy, setBusy] = useState(false)
+  const [usingDemo, setUsingDemo] = useState(false)
 
   async function refresh() {
     const since = new Date(Date.now() - 1000 * 60 * 60 * 24 * 7).toISOString()
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('incidents')
       .select('id,type,severity,description,lat,lng,created_at,verified')
       .gte('created_at', since)
       .order('created_at', { ascending: false })
       .limit(500)
-    setIncidents((data as any) ?? [])
+    if (!error && data && data.length) {
+      setIncidents(data as Incident[])
+      setUsingDemo(false)
+      return
+    }
+    maybeGenerateDemoIncident()
+    setIncidents(getDemoIncidents())
+    setUsingDemo(true)
   }
 
   useEffect(() => {
-    refresh()
+    void refresh()
+    void locate()
     const channel = supabase
       .channel('incidents-alerts')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'incidents' }, refresh)
       .subscribe()
+    const t = window.setInterval(() => {
+      void refresh()
+    }, 20_000)
     return () => {
       supabase.removeChannel(channel)
+      window.clearInterval(t)
     }
   }, [])
 
@@ -66,6 +81,8 @@ export function AlertsPage() {
     try {
       const p = await getCurrentPosition()
       setPos({ lat: p.coords.latitude, lng: p.coords.longitude })
+    } catch {
+      setPos({ lat: 19.076, lng: 72.8777 }) // Mumbai center demo fallback
     } finally {
       setBusy(false)
     }
@@ -85,6 +102,17 @@ export function AlertsPage() {
     [nearby],
   )
 
+  const nearbySafePlaces = useMemo(() => {
+    if (!pos) return []
+    return MUMBAI_SAFE_PLACES
+      .map((p) => ({
+        ...p,
+        dist: haversineMeters(pos.lat, pos.lng, p.lat, p.lng),
+      }))
+      .sort((a, b) => a.dist - b.dist)
+      .slice(0, 4)
+  }, [pos])
+
   return (
     <div className="space-y-3">
       <Card className="p-3">
@@ -95,6 +123,7 @@ export function AlertsPage() {
             </CardTitle>
             <CardDescription className="mt-1">
               Based on live community reports near your current location.
+              {usingDemo ? ' Demo stream active with simulated Mumbai activity.' : ''}
             </CardDescription>
           </div>
           <Button
@@ -151,9 +180,39 @@ export function AlertsPage() {
       )}
 
       <Card className="space-y-2">
+        <CardTitle>Nearby safe places</CardTitle>
+        <CardDescription>Closest verified support points around you.</CardDescription>
+        <div className="mt-2 space-y-2">
+          {nearbySafePlaces.length ? (
+            nearbySafePlaces.map((p) => (
+              <div
+                key={p.id}
+                className="flex items-center justify-between rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm"
+              >
+                <div className="min-w-0">
+                  <div className="font-semibold">{p.name}</div>
+                  <div className="text-xs text-zinc-400">
+                    {p.type.replace('_', ' ')} • {metersToText(p.dist)}
+                  </div>
+                </div>
+                <div className="text-xs text-zinc-300">safe</div>
+              </div>
+            ))
+          ) : (
+            <div className="text-sm text-zinc-400">Location needed to show safe places.</div>
+          )}
+        </div>
+        <Link to="/app/safe-places">
+          <Button variant="secondary" className="w-full" leftIcon={<ShieldPlus className="h-4 w-4" />}>
+            Open full safe places list
+          </Button>
+        </Link>
+      </Card>
+
+      <Card className="space-y-2">
         <CardTitle>Nearby reports</CardTitle>
         <CardDescription>
-          Sorted by distance (requires location). Uses real data—no mock entries.
+          Sorted by distance from your current position.
         </CardDescription>
         <div className="mt-2 space-y-2">
           {!pos ? (

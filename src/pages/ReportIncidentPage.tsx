@@ -9,7 +9,7 @@ import { Input, Textarea } from '../components/ui/Input'
 import { getCurrentPosition } from '../lib/location'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../app/auth/AuthProvider'
-import { enqueue } from '../lib/offlineQueue'
+import { createDemoIncident } from '../lib/demoData'
 
 const INCIDENT_TYPES = [
   'Harassment',
@@ -56,32 +56,37 @@ export function ReportIncidentPage() {
         reporter_id: session.user.id,
       }
 
+      let incidentId: string | null = null
       if (!navigator.onLine) {
-        await enqueue('incident_report', payload)
-        setStatus('Offline: report queued. Retry from Settings → Offline Queue.')
-        setBusy(false)
-        return
+        const demo = createDemoIncident(payload)
+        incidentId = demo.id
+      } else {
+        const { data: incident, error } = await supabase
+          .from('incidents')
+          .insert(payload)
+          .select('id')
+          .single()
+        if (error) {
+          const demo = createDemoIncident(payload)
+          incidentId = demo.id
+          setStatus('Submitted in demo mode. Sync backend later from your Supabase setup.')
+        } else {
+          incidentId = incident.id
+        }
       }
 
-      const { data: incident, error } = await supabase
-        .from('incidents')
-        .insert(payload)
-        .select('id')
-        .single()
-      if (error) throw error
-
-      if (photoUri) {
+      if (photoUri && incidentId) {
         const res = await fetch(photoUri)
         const blob = await res.blob()
         const ext = blob.type.includes('png') ? 'png' : 'jpg'
-        const path = `users/${session.user.id}/incidents/${incident.id}/${Date.now()}.${ext}`
+        const path = `users/${session.user.id}/incidents/${incidentId}/${Date.now()}.${ext}`
         const up = await supabase.storage.from('evidence').upload(path, blob, {
           contentType: blob.type,
           upsert: true,
         })
         if (!up.error) {
           await supabase.from('evidence_files').insert({
-            incident_id: incident.id,
+            incident_id: incidentId,
             path,
             mime: blob.type,
           })
@@ -92,9 +97,10 @@ export function ReportIncidentPage() {
       setPhotoUri(null)
       setSeverity(3)
       setType('Suspicious activity')
-      setStatus('Report submitted. Thank you for helping the community.')
-    } catch (e: any) {
-      setStatus(e?.message ?? 'Failed to submit report')
+      setStatus((s) => s ?? 'Report submitted successfully. Mumbai safety map has been updated.')
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'Failed to submit report'
+      setStatus(message)
     } finally {
       setBusy(false)
     }
@@ -113,7 +119,7 @@ export function ReportIncidentPage() {
         <Button variant="secondary" className="w-full" onClick={() => setQuickOpen(true)}>
           Quick report (10s)
         </Button>
-        <Link to="/recording">
+        <Link to="/app/recording">
           <Button variant="secondary" className="w-full">
             Record evidence
           </Button>

@@ -7,6 +7,7 @@ import { QuickReportModal } from '../components/QuickReportModal'
 import { Button } from '../components/ui/Button'
 import { Card, CardDescription, CardTitle } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'
+import { MUMBAI_SAFE_PLACES, getDemoIncidents } from '../lib/demoData'
 import { mapStyleUrl } from '../lib/env'
 import { getCurrentPosition } from '../lib/location'
 import { supabase } from '../lib/supabase'
@@ -69,27 +70,31 @@ async function fetchNearbySafePlaces(lng: number, lat: number) {
     );
     out body;
   `
-  const res = await fetch('https://overpass-api.de/api/interpreter', {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
-    body: q,
-  })
-  if (!res.ok) return []
-  const json = await res.json()
-  const places: SafePlace[] = (json.elements ?? [])
-    .map((el: any) => {
-      const type = el?.tags?.amenity as SafePlace['type'] | undefined
-      if (!type || typeof el.lat !== 'number' || typeof el.lon !== 'number') return null
-      return {
-        id: String(el.id),
-        name: el?.tags?.name || type.replace('_', ' '),
-        type,
-        lat: el.lat,
-        lng: el.lon,
-      } as SafePlace
+  try {
+    const res = await fetch('https://overpass-api.de/api/interpreter', {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+      body: q,
     })
-    .filter(Boolean)
-  return places
+    if (!res.ok) return MUMBAI_SAFE_PLACES
+    const json = await res.json()
+    const places: SafePlace[] = (json.elements ?? [])
+      .map((el: { tags?: { amenity?: SafePlace['type']; name?: string }; lat?: number; lon?: number; id?: number }) => {
+        const type = el?.tags?.amenity as SafePlace['type'] | undefined
+        if (!type || typeof el.lat !== 'number' || typeof el.lon !== 'number') return null
+        return {
+          id: String(el.id),
+          name: el?.tags?.name || type.replace('_', ' '),
+          type,
+          lat: el.lat,
+          lng: el.lon,
+        } as SafePlace
+      })
+      .filter((p: SafePlace | null): p is SafePlace => Boolean(p))
+    return places.length ? places : MUMBAI_SAFE_PLACES
+  } catch {
+    return MUMBAI_SAFE_PLACES
+  }
 }
 
 export function HomeMapPage() {
@@ -100,6 +105,7 @@ export function HomeMapPage() {
   const [selected, setSelected] = useState<Incident | null>(null)
   const [quickOpen, setQuickOpen] = useState(false)
   const [safePlacesCount, setSafePlacesCount] = useState(0)
+  const [mapStatus, setMapStatus] = useState<'loading' | 'ready' | 'error'>('loading')
 
   const lastIncident = useMemo(() => incidents[0], [incidents])
 
@@ -114,7 +120,11 @@ export function HomeMapPage() {
         .order('created_at', { ascending: false })
         .limit(500)
       if (cancelled) return
-      if (!error && data) setIncidents(data as any)
+      if (!error && data && data.length) {
+        setIncidents(data as Incident[])
+        return
+      }
+      setIncidents(getDemoIncidents())
     }
     load()
 
@@ -146,8 +156,12 @@ export function HomeMapPage() {
     mapRef.current = map
 
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right')
+    map.on('error', () => {
+      setMapStatus('error')
+    })
 
     map.on('load', async () => {
+      setMapStatus('ready')
       map.addSource('incidents', {
         type: 'geojson',
         data: incidentsToGeoJson([]),
@@ -319,6 +333,20 @@ export function HomeMapPage() {
 
       <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-black/20">
         <div ref={mapDivRef} className="h-[52vh] w-full" />
+        {mapStatus !== 'ready' ? (
+          <div className="absolute inset-0 grid place-items-center bg-black/50 p-4">
+            <div className="max-w-xs rounded-xl border border-white/15 bg-black/45 p-4 text-center">
+              <div className="text-sm font-semibold">
+                {mapStatus === 'loading' ? 'Loading map...' : 'Map failed to load'}
+              </div>
+              <div className="mt-1 text-xs text-zinc-300">
+                {mapStatus === 'loading'
+                  ? 'Please wait a moment while tiles are fetched.'
+                  : 'Check internet and refresh. You can still use SOS and reporting from tabs.'}
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         <div className="pointer-events-none absolute inset-x-0 top-0 p-3">
           <div
@@ -351,12 +379,12 @@ export function HomeMapPage() {
 
         <div className="absolute inset-x-0 bottom-0 p-3">
           <div className="grid grid-cols-2 gap-2">
-            <Link to="/journey">
+            <Link to="/app/journey">
               <Button className="w-full" leftIcon={<Navigation className="h-4 w-4" />}>
                 {t('map.safeJourney')}
               </Button>
             </Link>
-            <Link to="/report">
+            <Link to="/app/report">
               <Button variant="secondary" className="w-full">
                 {t('map.report')}
               </Button>

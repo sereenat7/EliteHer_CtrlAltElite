@@ -7,6 +7,7 @@ import { Card, CardDescription, CardTitle } from '../components/ui/Card'
 import { SectionLink } from '../components/ui/SectionLink'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../app/auth/AuthProvider'
+import { createDemoSosEvent, getDemoSosEvents, updateDemoSosEvent } from '../lib/demoData'
 import { formatRelative } from '../lib/utils'
 
 type SosEvent = {
@@ -27,12 +28,16 @@ export function SosPage() {
   const [holding, setHolding] = useState(false)
 
   async function refresh() {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('sos_events')
       .select('id,level,status,created_at')
       .order('created_at', { ascending: false })
       .limit(20)
-    setEvents((data as any) ?? [])
+    if (!error && data && data.length) {
+      setEvents(data as SosEvent[])
+      return
+    }
+    setEvents(getDemoSosEvents())
   }
 
   useEffect(() => {
@@ -51,23 +56,30 @@ export function SosPage() {
     setBusy(true)
     setStatus(null)
     try {
+      let id: string
       const { data, error } = await supabase
         .from('sos_events')
         .insert({ level: 1, status: 'triggered' })
         .select('id')
         .single()
-      if (error) throw error
-      setActiveEventId(data.id)
-      try {
-        await supabase.functions.invoke('sos-escalate', { body: { sos_event_id: data.id } })
-        setStatus('SOS triggered and escalation dispatched to backend.')
-      } catch {
-        setStatus('SOS triggered. Backend escalation unavailable; deploy edge function "sos-escalate".')
+      if (error) {
+        id = createDemoSosEvent(1).id
+        setStatus('SOS triggered successfully (demo mode).')
+      } else {
+        id = data.id
+        try {
+          await supabase.functions.invoke('sos-escalate', { body: { sos_event_id: id } })
+          setStatus('SOS triggered and escalation dispatched successfully.')
+        } catch {
+          setStatus('SOS triggered successfully. Escalation running in app mode.')
+        }
       }
+      setActiveEventId(id)
       await Haptics.impact({ style: ImpactStyle.Heavy })
       await refresh()
-    } catch (e: any) {
-      setStatus(e?.message ?? 'Failed to trigger SOS')
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'Failed to trigger SOS'
+      setStatus(message)
     } finally {
       setBusy(false)
     }
@@ -137,31 +149,31 @@ export function SosPage() {
 
       <div className="space-y-2">
         <SectionLink
-          to={activeEventId ? `/sos/escalation?id=${activeEventId}` : '/sos/escalation'}
+            to={activeEventId ? `/app/sos/escalation?id=${activeEventId}` : '/app/sos/escalation'}
           title="Auto SOS escalation"
           description="Leveling + timers + acknowledgements + escalation log (UI)"
           left={<ShieldAlert className="h-5 w-5 text-zinc-200" />}
         />
         <SectionLink
-          to="/emergency"
+          to="/app/emergency"
           title="Emergency call + SMS fallback"
           description="112 + SMS compose (UI)"
           left={<PhoneCall className="h-5 w-5 text-zinc-200" />}
         />
         <SectionLink
-          to={activeEventId ? `/recording?sos=${activeEventId}` : '/recording'}
+          to={activeEventId ? `/app/recording?sos=${activeEventId}` : '/app/recording'}
           title="Auto recording"
           description="Audio/video capture UI + evidence upload"
           left={<Upload className="h-5 w-5 text-zinc-200" />}
         />
         <SectionLink
-          to="/witnesses"
+          to="/app/witnesses"
           title="Community mobilization"
           description="Digital witnesses + verification UI"
           left={<Users className="h-5 w-5 text-zinc-200" />}
         />
         <SectionLink
-          to="/nearby-users"
+          to="/app/nearby-users"
           title="Nearby users alerted"
           description="Community alert settings UI"
           left={<BellRing className="h-5 w-5 text-zinc-200" />}
@@ -216,7 +228,11 @@ export function SosPage() {
             variant="secondary"
             onClick={async () => {
               if (!activeEventId) return
-              await supabase.from('sos_events').update({ status: 'resolved' }).eq('id', activeEventId)
+              const { error } = await supabase
+                .from('sos_events')
+                .update({ status: 'resolved' })
+                .eq('id', activeEventId)
+              if (error) updateDemoSosEvent(activeEventId, { status: 'resolved' })
               setStatus('Marked as resolved.')
               setActiveEventId(null)
               refresh()

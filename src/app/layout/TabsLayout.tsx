@@ -149,10 +149,10 @@ export function TabsLayout() {
   }, [session])
 
   const tabs = [
-    { to: '/', label: t('tabs.map'), icon: Map, end: true },
-    { to: '/alerts', label: t('tabs.alerts'), icon: Bell },
-    { to: '/report', label: t('tabs.report'), icon: ShieldPlus },
-    { to: '/sos', label: t('tabs.sos'), icon: Siren },
+    { to: '/app', label: t('tabs.map'), icon: Map, end: true },
+    { to: '/app/alerts', label: t('tabs.alerts'), icon: Bell },
+    { to: '/app/report', label: t('tabs.report'), icon: ShieldPlus },
+    { to: '/app/sos', label: t('tabs.sos'), icon: Siren },
   ]
 
   return (
@@ -163,7 +163,7 @@ export function TabsLayout() {
           <div className="flex items-center gap-2">
             <LanguagePicker />
             <NavLink
-              to="/settings"
+              to="/app/settings"
               className={({ isActive }) =>
                 cn(
                   'grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/5 text-zinc-200 transition hover:bg-white/10',

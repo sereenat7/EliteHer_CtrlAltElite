@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '../components/ui/Button'
 import { Card, CardDescription, CardTitle } from '../components/ui/Card'
+import { MUMBAI_SAFE_PLACES } from '../lib/demoData'
 import { getCurrentPosition } from '../lib/location'
 
 type Place = {
@@ -35,30 +36,43 @@ async function searchNearbyAmenities(amenity: string, proximity: [number, number
     );
     out center 12;
   `
-  const res = await fetch('https://overpass-api.de/api/interpreter', {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
-    body: query,
-  })
-  if (!res.ok) return []
-  const json = await res.json()
-  return (json.elements ?? [])
-    .map((el: any) => {
-      const center = el.center
-        ? [el.center.lon, el.center.lat]
-        : typeof el.lon === 'number' && typeof el.lat === 'number'
-          ? [el.lon, el.lat]
-          : null
-      if (!center) return null
-      const name = el?.tags?.name ?? amenity.replace('_', ' ')
-      return {
-        id: `${el.type}-${el.id}` as string,
-        name,
-        address: el?.tags?.['addr:full'] ?? el?.tags?.['addr:street'] ?? 'Nearby',
-        center: center as [number, number],
-      } as Place
+  try {
+    const res = await fetch('https://overpass-api.de/api/interpreter', {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+      body: query,
     })
-    .filter((p: Place | null): p is Place => Boolean(p))
+    if (!res.ok) return []
+    const json = await res.json()
+    return (json.elements ?? [])
+      .map(
+        (el: {
+          type: string
+          id: number
+          center?: { lon: number; lat: number }
+          lon?: number
+          lat?: number
+          tags?: { name?: string; 'addr:full'?: string; 'addr:street'?: string }
+        }) => {
+          const center = el.center
+            ? [el.center.lon, el.center.lat]
+            : typeof el.lon === 'number' && typeof el.lat === 'number'
+              ? [el.lon, el.lat]
+              : null
+          if (!center) return null
+          const name = el?.tags?.name ?? amenity.replace('_', ' ')
+          return {
+            id: `${el.type}-${el.id}` as string,
+            name,
+            address: el?.tags?.['addr:full'] ?? el?.tags?.['addr:street'] ?? 'Nearby',
+            center: center as [number, number],
+          } as Place
+        },
+      )
+      .filter((p: Place | null): p is Place => Boolean(p))
+  } catch {
+    return []
+  }
 }
 
 export function SafePlacesPage() {
@@ -76,8 +90,10 @@ export function SafePlacesPage() {
     try {
       const p = await getCurrentPosition()
       setPos([p.coords.longitude, p.coords.latitude])
-    } catch (e: any) {
-      setStatus(e?.message ?? 'Failed to get location')
+    } catch {
+      // Fallback to Mumbai center in demo mode so list always appears.
+      setPos([72.8777, 19.076])
+      setStatus('Using demo location: Mumbai')
     } finally {
       setBusy(false)
     }
@@ -96,10 +112,19 @@ export function SafePlacesPage() {
       setStatus(null)
       try {
         const c = CATEGORIES.find((x) => x.key === category)!
-        const data = (await searchNearbyAmenities(c.amenity, pos)).slice(0, 12)
+        const apiData = (await searchNearbyAmenities(c.amenity, pos)).slice(0, 12)
+        const demoData = MUMBAI_SAFE_PLACES
+          .filter((p) => p.type === c.amenity)
+          .map((p) => ({
+            id: p.id,
+            name: p.name,
+            address: p.address ?? 'Mumbai',
+            center: [p.lng, p.lat] as [number, number],
+          }))
+        const data = (apiData.length ? apiData : demoData).slice(0, 12)
         if (!cancelled) setPlaces(data)
-      } catch (e: any) {
-        if (!cancelled) setStatus(e?.message ?? 'Failed to load places')
+      } catch {
+        if (!cancelled) setStatus('Failed to load places')
       } finally {
         if (!cancelled) setBusy(false)
       }
@@ -112,7 +137,7 @@ export function SafePlacesPage() {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <Link to="/journey" className="inline-flex items-center gap-2 text-sm text-zinc-300">
+        <Link to="/app/journey" className="inline-flex items-center gap-2 text-sm text-zinc-300">
           <ArrowLeft className="h-4 w-4" /> Back
         </Link>
         <Button
@@ -166,7 +191,7 @@ export function SafePlacesPage() {
             places.map((p) => (
               <Link
                 key={p.id}
-                to={`/ar?dest=${encodeURIComponent(p.address)}&lon=${p.center[0]}&lat=${p.center[1]}`}
+                to={`/app/ar?dest=${encodeURIComponent(p.address)}&lon=${p.center[0]}&lat=${p.center[1]}`}
               >
                 <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 hover:bg-white/5">
                   <div className="flex items-start justify-between gap-3">

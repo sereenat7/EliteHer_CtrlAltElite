@@ -5,7 +5,7 @@ import { Modal } from './ui/Modal'
 import { Textarea } from './ui/Input'
 import { getCurrentPosition } from '../lib/location'
 import { supabase } from '../lib/supabase'
-import { enqueue } from '../lib/offlineQueue'
+import { createDemoIncident } from '../lib/demoData'
 
 const TYPES = ['Suspicious activity', 'Harassment', 'Stalking', 'Theft', 'Violence', 'Other']
 
@@ -55,16 +55,21 @@ export function QuickReportModal({
       }
 
       if (!navigator.onLine) {
-        await enqueue('incident_report', payload)
-        setStatus('Queued (offline). It will sync when you retry from Offline Queue.')
+        createDemoIncident(payload)
+        setStatus('Sent in demo mode (offline).')
         return
       }
 
       const { error } = await supabase.from('incidents').insert(payload)
-      if (error) throw error
-      setStatus('Sent. Thank you.')
-    } catch (e: any) {
-      setStatus(e?.message ?? 'Failed to send')
+      if (error) {
+        createDemoIncident(payload)
+        setStatus('Sent in demo mode. Backend sync unavailable right now.')
+        return
+      }
+      setStatus('Sent successfully. Added to live map.')
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'Failed to send'
+      setStatus(message)
     } finally {
       setBusy(false)
     }

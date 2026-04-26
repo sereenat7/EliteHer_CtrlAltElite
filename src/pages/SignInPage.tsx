@@ -31,7 +31,7 @@ export function SignInPage() {
         const { error: e } = await supabase.auth.signUp({ email, password })
         if (e) throw e
       }
-      navigate('/', { replace: true })
+      navigate('/app', { replace: true })
     } catch (e: any) {
       setError(e?.message ?? 'Something went wrong')
     } finally {
