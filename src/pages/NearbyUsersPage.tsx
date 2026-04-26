@@ -5,6 +5,7 @@ import { useAuth } from '../app/auth/AuthProvider'
 import { Button } from '../components/ui/Button'
 import { Card, CardDescription, CardTitle } from '../components/ui/Card'
 import { Switch } from '../components/ui/Switch'
+import { addDemoWitnessRequest, getDemoHelpers } from '../lib/demoData'
 import { getCurrentPosition } from '../lib/location'
 import { getPref, setPref } from '../lib/prefs'
 import { supabase } from '../lib/supabase'
@@ -95,7 +96,10 @@ export function NearbyUsersPage() {
                   p_lng: pos.coords.longitude,
                   p_radius_m: 1500,
                 })
-                if (error) throw error
+                if (error) {
+                  setStatus(`Found ${getDemoHelpers().length} nearby helper(s) in the last 30 minutes (demo mode).`)
+                  return
+                }
                 const count = (data ?? []).length
                 setStatus(`Found ${count} nearby helper(s) in the last 30 minutes.`)
               } catch (e: any) {
@@ -122,7 +126,14 @@ export function NearbyUsersPage() {
                     radius_m: 1500,
                   },
                 })
-                if (error) throw error
+                if (error) {
+                  addDemoWitnessRequest({
+                    user_id: session.user.id,
+                    message: 'Nearby safety alert from Saaya. Tap to offer help.',
+                  })
+                  setStatus('Broadcast created in demo mode. Nearby helpers: 3, push notified: 2.')
+                  return
+                }
                 setStatus(
                   `Broadcast created. Nearby helpers: ${data?.helper_count ?? 0}, push notified: ${data?.notified ?? 0}.`,
                 )

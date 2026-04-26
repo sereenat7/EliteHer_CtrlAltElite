@@ -106,7 +106,7 @@ export function HomeMapPage() {
   const [selected, setSelected] = useState<Incident | null>(null)
   const [quickOpen, setQuickOpen] = useState(false)
   const [safePlacesCount, setSafePlacesCount] = useState(0)
-  const [mapStatus, setMapStatus] = useState<'loading' | 'ready' | 'error'>('loading')
+  const [mapStatus, setMapStatus] = useState<'loading' | 'ready'>('loading')
 
   const lastIncident = useMemo(() => incidents[0], [incidents])
 
@@ -147,6 +147,11 @@ export function HomeMapPage() {
   useEffect(() => {
     if (!mapDivRef.current) return
     const style = mapStyleUrl()
+    let didMapLoad = false
+    const loadTimeout = window.setTimeout(() => {
+      // Fail-open: don't block the UI with a hard error banner if tiles are slow.
+      setMapStatus('ready')
+    }, 9000)
 
     const map = new maplibregl.Map({
       container: mapDivRef.current,
@@ -158,11 +163,19 @@ export function HomeMapPage() {
 
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right')
     map.on('error', () => {
-      setMapStatus('error')
+      // Ignore recoverable map runtime errors to avoid false "failed" UI.
     })
 
     map.on('load', async () => {
+      didMapLoad = true
+      window.clearTimeout(loadTimeout)
       setMapStatus('ready')
+    map.on('render', () => {
+      // In some deployments "load" can be delayed while tiles still render.
+      // As soon as we paint, hide loading overlay.
+      if (mapStatus !== 'ready') setMapStatus('ready')
+    })
+
       map.addSource('incidents', {
         type: 'geojson',
         data: incidentsToGeoJson([]),
@@ -273,6 +286,7 @@ export function HomeMapPage() {
     })
 
     return () => {
+      window.clearTimeout(loadTimeout)
       map.remove()
       mapRef.current = null
     }
@@ -337,16 +351,16 @@ export function HomeMapPage() {
 
       <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-black/20">
         <div ref={mapDivRef} className="h-[52vh] w-full" />
-        {mapStatus !== 'ready' ? (
+        {mapStatus === 'loading' ? (
           <div className="absolute inset-0 grid place-items-center bg-black/50 p-4">
             <div className="max-w-xs rounded-xl border border-white/15 bg-black/45 p-4 text-center">
               <div className="text-sm font-semibold">
-                {mapStatus === 'loading' ? 'Loading map...' : 'Map failed to load'}
+                {t('homeMap.loadingMap', { defaultValue: 'Loading map...' })}
               </div>
               <div className="mt-1 text-xs text-zinc-300">
-                {mapStatus === 'loading'
-                  ? 'Please wait a moment while tiles are fetched.'
-                  : 'Check internet and refresh. You can still use SOS and reporting from tabs.'}
+                {t('homeMap.loadingMapHint', {
+                  defaultValue: 'Please wait a moment while tiles are fetched.',
+                })}
               </div>
             </div>
           </div>
@@ -366,7 +380,11 @@ export function HomeMapPage() {
                 <ShieldAlert className="mt-0.5 h-4 w-4 text-amber-200" />
                 <div className="min-w-0">
                   <div className="text-sm font-semibold">
-                    Latest: {lastIncident.type} • Sev {lastIncident.severity}/5
+                    {t('homeMap.latestIncident', {
+                      defaultValue: 'Latest: {{type}} - Sev {{severity}}/5',
+                      type: lastIncident.type,
+                      severity: lastIncident.severity,
+                    })}
                   </div>
                   <div className="text-xs text-amber-100/80">
                     {formatRelative(lastIncident.created_at)}
@@ -375,7 +393,9 @@ export function HomeMapPage() {
               </div>
             ) : (
               <div className="text-sm text-zinc-300">
-                No reports yet. Be the first to report something suspicious.
+                {t('homeMap.noReports', {
+                  defaultValue: 'No reports yet. Be the first to report something suspicious.',
+                })}
               </div>
             )}
           </div>
@@ -399,37 +419,51 @@ export function HomeMapPage() {
 
       <Card className="space-y-2">
         <CardTitle className="flex items-center gap-2">
-          Saaya smart safety suite <Sparkles className="h-4 w-4 text-pink-200" />
+          {t('homeMap.suiteTitle', { defaultValue: 'Saaya smart safety suite' })}{' '}
+          <Sparkles className="h-4 w-4 text-pink-200" />
         </CardTitle>
-        <CardDescription>Designed to keep you protected before, during, and after risk.</CardDescription>
+        <CardDescription>
+          {t('homeMap.suiteSubtitle', {
+            defaultValue: 'Designed to keep you protected before, during, and after risk.',
+          })}
+        </CardDescription>
         <div className="mt-2 grid grid-cols-1 gap-2">
           <Link to="/app/sos">
             <div className="rounded-xl border border-red-300/25 bg-red-500/10 px-3 py-3 transition hover:bg-red-500/15">
               <div className="flex items-center gap-2 text-sm font-semibold">
-                <Siren className="h-4 w-4 text-red-200" /> One-touch SOS escalation
+                <Siren className="h-4 w-4 text-red-200" />{' '}
+                {t('homeMap.sosCardTitle', { defaultValue: 'One-touch SOS escalation' })}
               </div>
               <div className="mt-1 text-xs text-zinc-300">
-                Silent triggers, escalation levels, and emergency actions in seconds.
+                {t('homeMap.sosCardText', {
+                  defaultValue: 'Silent triggers, escalation levels, and emergency actions in seconds.',
+                })}
               </div>
             </div>
           </Link>
           <Link to="/app/alerts">
             <div className="rounded-xl border border-amber-300/25 bg-amber-500/10 px-3 py-3 transition hover:bg-amber-500/15">
               <div className="flex items-center gap-2 text-sm font-semibold">
-                <ShieldAlert className="h-4 w-4 text-amber-200" /> Real-time threat alerts
+                <ShieldAlert className="h-4 w-4 text-amber-200" />{' '}
+                {t('homeMap.alertCardTitle', { defaultValue: 'Real-time threat alerts' })}
               </div>
               <div className="mt-1 text-xs text-zinc-300">
-                Nearby incident intelligence with demo live feed and risk prioritization.
+                {t('homeMap.alertCardText', {
+                  defaultValue: 'Nearby incident intelligence with demo live feed and risk prioritization.',
+                })}
               </div>
             </div>
           </Link>
           <Link to="/app/nearby-users">
             <div className="rounded-xl border border-cyan-300/25 bg-cyan-500/10 px-3 py-3 transition hover:bg-cyan-500/15">
               <div className="flex items-center gap-2 text-sm font-semibold">
-                <Users className="h-4 w-4 text-cyan-200" /> Community witness network
+                <Users className="h-4 w-4 text-cyan-200" />{' '}
+                {t('homeMap.communityCardTitle', { defaultValue: 'Community witness network' })}
               </div>
               <div className="mt-1 text-xs text-zinc-300">
-                Share live context with nearby helpers and trusted contacts.
+                {t('homeMap.communityCardText', {
+                  defaultValue: 'Share live context with nearby helpers and trusted contacts.',
+                })}
               </div>
             </div>
           </Link>
@@ -441,14 +475,19 @@ export function HomeMapPage() {
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <CardTitle>
-                {selected.type} • Sev {selected.severity}/5
+                {t('homeMap.selectedIncident', {
+                  defaultValue: '{{type}} - Sev {{severity}}/5',
+                  type: selected.type,
+                  severity: selected.severity,
+                })}
               </CardTitle>
               <CardDescription className="mt-1">
-                {selected.description || 'No details'} • {formatRelative(selected.created_at)}
+                {selected.description || t('homeMap.noDetails', { defaultValue: 'No details' })} •{' '}
+                {formatRelative(selected.created_at)}
               </CardDescription>
             </div>
             <Button variant="ghost" size="sm" onClick={() => setSelected(null)}>
-              Close
+              {t('common.close', { defaultValue: 'Close' })}
             </Button>
           </div>
         </Card>

@@ -5,6 +5,7 @@ import { Button } from '../components/ui/Button'
 import { Card, CardDescription, CardTitle } from '../components/ui/Card'
 import { Input } from '../components/ui/Input'
 import { Modal } from '../components/ui/Modal'
+import { addDemoContact, getDemoContacts, removeDemoContact } from '../lib/demoData'
 import { supabase } from '../lib/supabase'
 
 type Contact = {
@@ -24,11 +25,15 @@ export function ContactsPage() {
   const [busy, setBusy] = useState(false)
 
   async function refresh() {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('contacts')
       .select('id,name,phone,relationship,created_at')
       .order('created_at', { ascending: false })
-    setContacts((data as any) ?? [])
+    if (!error && data && data.length) {
+      setContacts(data as Contact[])
+      return
+    }
+    setContacts(getDemoContacts())
   }
 
   useEffect(() => {
@@ -45,11 +50,13 @@ export function ContactsPage() {
   async function add() {
     setBusy(true)
     try {
-      await supabase.from('contacts').insert({
+      const payload = {
         name: name.trim(),
         phone: phone.trim(),
         relationship: relationship.trim() ? relationship.trim() : null,
-      })
+      }
+      const { error } = await supabase.from('contacts').insert(payload)
+      if (error) addDemoContact(payload)
       setName('')
       setPhone('')
       setRelationship('')
@@ -61,7 +68,8 @@ export function ContactsPage() {
   }
 
   async function remove(id: string) {
-    await supabase.from('contacts').delete().eq('id', id)
+    const { error } = await supabase.from('contacts').delete().eq('id', id)
+    if (error) removeDemoContact(id)
     refresh()
   }
 

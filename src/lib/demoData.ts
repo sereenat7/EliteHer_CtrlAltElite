@@ -25,8 +25,31 @@ export type DemoSafePlace = {
   address?: string
 }
 
+export type DemoContact = {
+  id: string
+  name: string
+  phone: string
+  relationship: string | null
+  created_at: string
+}
+
+export type DemoPresence = {
+  user_id: string
+  last_seen: string
+}
+
+export type DemoWitnessRequest = {
+  id: string
+  user_id: string
+  message: string | null
+  status: string
+  created_at: string
+}
+
 const INCIDENTS_KEY = 'saaya_demo_incidents_v1'
 const SOS_KEY = 'saaya_demo_sos_v1'
+const CONTACTS_KEY = 'saaya_demo_contacts_v1'
+const WITNESS_REQUESTS_KEY = 'saaya_demo_witness_requests_v1'
 const LAST_GENERATED_KEY = 'saaya_demo_last_generated_v1'
 
 const MUMBAI_SEED_INCIDENTS: DemoIncident[] = [
@@ -101,6 +124,37 @@ export const MUMBAI_SAFE_PLACES: DemoSafePlace[] = [
   { id: 'sp-6', name: 'Byculla Fire Station', type: 'fire_station', lat: 18.9817, lng: 72.8333 },
   { id: 'sp-7', name: 'Andheri Fire Station', type: 'fire_station', lat: 19.1136, lng: 72.8492 },
   { id: 'sp-8', name: 'Apollo Pharmacy Bandra', type: 'pharmacy', lat: 19.066, lng: 72.8347 },
+]
+
+export const DEMO_DESTINATIONS: Array<{ name: string; center: [number, number] }> = [
+  { name: 'Bandra Bandstand, Mumbai', center: [72.8195, 19.0423] },
+  { name: 'Dadar Station, Mumbai', center: [72.8426, 19.0178] },
+  { name: 'Powai Lake, Mumbai', center: [72.9052, 19.1176] },
+  { name: 'Marine Drive, Mumbai', center: [72.8228, 18.944] },
+  { name: 'Phoenix Marketcity Kurla, Mumbai', center: [72.8868, 19.0862] },
+]
+
+const DEMO_HELPERS: DemoPresence[] = [
+  { user_id: 'helper-a', last_seen: new Date(Date.now() - 1000 * 60 * 2).toISOString() },
+  { user_id: 'helper-b', last_seen: new Date(Date.now() - 1000 * 60 * 6).toISOString() },
+  { user_id: 'helper-c', last_seen: new Date(Date.now() - 1000 * 60 * 11).toISOString() },
+]
+
+const DEMO_WITNESS_SEED: DemoWitnessRequest[] = [
+  {
+    id: 'wr-seed-1',
+    user_id: 'user-nearby',
+    message: 'Need someone to stay connected while I reach a cab.',
+    status: 'open',
+    created_at: new Date(Date.now() - 1000 * 60 * 8).toISOString(),
+  },
+  {
+    id: 'wr-seed-2',
+    user_id: 'user-b',
+    message: 'Feeling unsafe near station exit, can anyone assist?',
+    status: 'open',
+    created_at: new Date(Date.now() - 1000 * 60 * 17).toISOString(),
+  },
 ]
 
 const MUMBAI_HOTSPOTS = [
@@ -210,4 +264,51 @@ export function updateDemoSosEvent(
   const current = readJson<DemoSosEvent[]>(SOS_KEY, [])
   const next = current.map((x) => (x.id === id ? { ...x, ...patch } : x))
   writeJson(SOS_KEY, next)
+}
+
+export function getDemoContacts() {
+  return readJson<DemoContact[]>(CONTACTS_KEY, [])
+}
+
+export function addDemoContact(input: { name: string; phone: string; relationship: string | null }) {
+  const contact: DemoContact = {
+    id: `demo-contact-${crypto.randomUUID()}`,
+    name: input.name,
+    phone: input.phone,
+    relationship: input.relationship,
+    created_at: new Date().toISOString(),
+  }
+  const current = readJson<DemoContact[]>(CONTACTS_KEY, [])
+  writeJson(CONTACTS_KEY, [contact, ...current].slice(0, 100))
+  return contact
+}
+
+export function removeDemoContact(id: string) {
+  const current = readJson<DemoContact[]>(CONTACTS_KEY, [])
+  writeJson(
+    CONTACTS_KEY,
+    current.filter((c) => c.id !== id),
+  )
+}
+
+export function getDemoHelpers() {
+  return [...DEMO_HELPERS]
+}
+
+export function getDemoWitnessRequests() {
+  const local = readJson<DemoWitnessRequest[]>(WITNESS_REQUESTS_KEY, [])
+  return [...local, ...DEMO_WITNESS_SEED].sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
+}
+
+export function addDemoWitnessRequest(input: { user_id: string; message: string }) {
+  const next: DemoWitnessRequest = {
+    id: `demo-wr-${crypto.randomUUID()}`,
+    user_id: input.user_id,
+    message: input.message,
+    status: 'open',
+    created_at: new Date().toISOString(),
+  }
+  const current = readJson<DemoWitnessRequest[]>(WITNESS_REQUESTS_KEY, [])
+  writeJson(WITNESS_REQUESTS_KEY, [next, ...current].slice(0, 100))
+  return next
 }

@@ -1,6 +1,7 @@
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { ShieldAlert, Siren, Users } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { HashRouter, Link, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from './app/auth/AuthProvider'
 import { TabsLayout } from './app/layout/TabsLayout'
@@ -25,20 +26,27 @@ import { SosEscalationPage } from './pages/SosEscalationPage'
 import { WitnessesPage } from './pages/WitnessesPage'
 
 function LandingPage() {
+  const { t } = useTranslation()
   const highlights = [
     {
-      title: 'Detect Risk',
-      text: 'AI-inspired safety signals monitor patterns and crowd risk in real time.',
+      title: t('landing.detectTitle', { defaultValue: 'Detect Risk' }),
+      text: t('landing.detectText', {
+        defaultValue: 'AI-inspired safety signals monitor patterns and crowd risk in real time.',
+      }),
       icon: ShieldAlert,
     },
     {
-      title: 'Act Automatically',
-      text: 'SOS escalation, evidence capture, and emergency workflows run instantly.',
+      title: t('landing.actTitle', { defaultValue: 'Act Automatically' }),
+      text: t('landing.actText', {
+        defaultValue: 'SOS escalation, evidence capture, and emergency workflows run instantly.',
+      }),
       icon: Siren,
     },
     {
-      title: 'Inform Community',
-      text: 'Nearby users and trusted contacts can be alerted for rapid support.',
+      title: t('landing.informTitle', { defaultValue: 'Inform Community' }),
+      text: t('landing.informText', {
+        defaultValue: 'Nearby users and trusted contacts can be alerted for rapid support.',
+      }),
       icon: Users,
     },
   ]
@@ -56,7 +64,9 @@ function LandingPage() {
             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/35 to-transparent" />
             <div className="landing-quote-glow absolute inset-x-3 bottom-14 rounded-xl border border-white/15 bg-black/45 px-3 py-2 backdrop-blur">
               <div className="landing-quote-text text-xs font-semibold text-pink-100">
-                "Tonight, I made it home safe. Saaya stayed with me all the way."
+                {t('landing.quote', {
+                  defaultValue: '"Tonight, I made it home safe. Saaya stayed with me all the way."',
+                })}
               </div>
             </div>
             <div className="absolute bottom-3 left-3">
@@ -65,10 +75,14 @@ function LandingPage() {
           </div>
           <div className="p-6 pt-4">
           <div className="text-center">
-            <div className="text-3xl font-extrabold tracking-tight">You are never alone.</div>
+            <div className="text-3xl font-extrabold tracking-tight">
+              {t('landing.heroTitle', { defaultValue: 'You are never alone.' })}
+            </div>
             <p className="mt-2 text-sm text-zinc-300">
-              Saaya stands beside every woman with intelligent protection, instant SOS action, and
-              community support that reaches you when it matters most.
+              {t('landing.heroText', {
+                defaultValue:
+                  'Saaya stands beside every woman with intelligent protection, instant SOS action, and community support that reaches you when it matters most.',
+              })}
             </p>
           </div>
           <div className="mt-5 space-y-2">
@@ -76,13 +90,13 @@ function LandingPage() {
               to="/app"
               className="block rounded-xl bg-pink-500 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-pink-400"
             >
-              Start Your Safe Journey
+              {t('landing.startCta', { defaultValue: 'Start Your Safe Journey' })}
             </Link>
             <Link
               to="/app/alerts"
               className="block rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-center text-sm font-semibold text-zinc-100 transition hover:bg-white/10"
             >
-              See Live Safety Action
+              {t('landing.seeActionCta', { defaultValue: 'See Live Safety Action' })}
             </Link>
           </div>
           </div>
@@ -104,18 +118,24 @@ function LandingPage() {
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-black/25 p-4 text-xs text-zinc-300">
-          Hidden mode, low-battery fallback, offline escalation, and digital witness support are
-          built in to keep protection always on.
+          {t('landing.supportText', {
+            defaultValue:
+              'Hidden mode, low-battery fallback, offline escalation, and digital witness support are built in to keep protection always on.',
+          })}
         </div>
 
         <div className="rounded-2xl border border-pink-300/25 bg-gradient-to-r from-pink-500/15 to-purple-500/15 p-4">
           <div className="text-xs font-semibold uppercase tracking-wider text-pink-100">
-            Saaya Story
+            {t('landing.storyLabel', { defaultValue: 'Saaya Story' })}
           </div>
-          <div className="mt-1 text-sm font-bold text-white">She reached home safe.</div>
+          <div className="mt-1 text-sm font-bold text-white">
+            {t('landing.storyTitle', { defaultValue: 'She reached home safe.' })}
+          </div>
           <div className="mt-1 text-xs text-zinc-200">
-            Route watched. Alerts monitored. SOS ready. This is what women-first safety should feel
-            like: calm, supported, and protected.
+            {t('landing.storyText', {
+              defaultValue:
+                'Route watched. Alerts monitored. SOS ready. This is what women-first safety should feel like: calm, supported, and protected.',
+            })}
           </div>
         </div>
 
@@ -124,10 +144,12 @@ function LandingPage() {
             to="/app"
             className="block rounded-xl bg-pink-500 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-pink-400"
           >
-            Open Live Safety Map
+            {t('landing.openMapCta', { defaultValue: 'Open Live Safety Map' })}
           </Link>
           <div className="text-center text-xs text-zinc-400">
-            Inspired by the Saaya experience flow and adapted for app-first navigation.
+            {t('landing.creditText', {
+              defaultValue: 'Inspired by the Saaya experience flow and adapted for app-first navigation.',
+            })}
           </div>
         </div>
       </div>
@@ -137,6 +159,7 @@ function LandingPage() {
 
 function AppGate({ children }: { children: React.ReactNode }) {
   const { loading } = useAuth()
+  const { t } = useTranslation()
   const [showSplash, setShowSplash] = useState(true)
 
   useEffect(() => {
@@ -161,7 +184,9 @@ function AppGate({ children }: { children: React.ReactNode }) {
           </div>
           <AppLogo className="mt-5 justify-center" showWordmark />
           <div className="mt-3 text-xs text-zinc-300">
-            Activating women safety shield, SOS layers, and live map intelligence...
+            {t('loading.safetyBoot', {
+              defaultValue: 'Activating women safety shield, SOS layers, and live map intelligence...',
+            })}
           </div>
         </div>
       </div>

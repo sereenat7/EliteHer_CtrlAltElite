@@ -1,5 +1,6 @@
 import { ArrowLeft, Compass, Hospital, LocateFixed, MapPin, ShieldAlert, Store } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { Button } from '../components/ui/Button'
 import { Card, CardDescription, CardTitle } from '../components/ui/Card'
@@ -76,6 +77,7 @@ async function searchNearbyAmenities(amenity: string, proximity: [number, number
 }
 
 export function SafePlacesPage() {
+  const { t } = useTranslation()
   const [category, setCategory] = useState(CATEGORIES[0].key)
   const [pos, setPos] = useState<[number, number] | null>(null) // [lon,lat]
   const [places, setPlaces] = useState<Place[]>([])
@@ -93,7 +95,7 @@ export function SafePlacesPage() {
     } catch {
       // Fallback to Mumbai center in demo mode so list always appears.
       setPos([72.8777, 19.076])
-      setStatus('Using demo location: Mumbai')
+      setStatus(t('safePlaces.demoLocation', { defaultValue: 'Using demo location: Mumbai' }))
     } finally {
       setBusy(false)
     }
@@ -138,7 +140,7 @@ export function SafePlacesPage() {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <Link to="/app/journey" className="inline-flex items-center gap-2 text-sm text-zinc-300">
-          <ArrowLeft className="h-4 w-4" /> Back
+          <ArrowLeft className="h-4 w-4" /> {t('common.back', { defaultValue: 'Back' })}
         </Link>
         <Button
           variant="secondary"
@@ -147,14 +149,14 @@ export function SafePlacesPage() {
           leftIcon={<LocateFixed className="h-4 w-4" />}
           onClick={locate}
         >
-          Update
+          {t('common.update', { defaultValue: 'Update' })}
         </Button>
       </div>
 
       <Card>
-        <CardTitle>Nearby safe places</CardTitle>
+        <CardTitle>{t('safePlaces.title', { defaultValue: 'Nearby safe places' })}</CardTitle>
         <CardDescription className="mt-1">
-          Live OpenStreetMap data near your location.
+          {t('safePlaces.subtitle', { defaultValue: 'Live OpenStreetMap data near your location.' })}
         </CardDescription>
       </Card>
 
@@ -180,10 +182,13 @@ export function SafePlacesPage() {
 
       <Card className="space-y-2">
         <CardTitle className="flex items-center gap-2">
-          Results <span className="text-zinc-400">({current.label})</span>
+          {t('safePlaces.resultsTitle', { defaultValue: 'Results' })}{' '}
+          <span className="text-zinc-400">({current.label})</span>
         </CardTitle>
         <CardDescription>
-          Tap a place to start navigation (opens AR Navigation UI).
+          {t('safePlaces.resultsSubtitle', {
+            defaultValue: 'Tap a place to start navigation (opens AR Navigation UI).',
+          })}
         </CardDescription>
         {status ? <div className="text-sm text-zinc-200">{status}</div> : null}
         <div className="mt-2 space-y-2">
@@ -202,13 +207,19 @@ export function SafePlacesPage() {
                       </div>
                       <div className="mt-1 text-xs text-zinc-400">{p.address}</div>
                     </div>
-                    <div className="text-xs text-zinc-300">Navigate</div>
+                    <div className="text-xs text-zinc-300">
+                      {t('safePlaces.navigate', { defaultValue: 'Navigate' })}
+                    </div>
                   </div>
                 </div>
               </Link>
             ))
           ) : (
-            <div className="text-sm text-zinc-400">{busy ? 'Loading…' : 'No results.'}</div>
+            <div className="text-sm text-zinc-400">
+              {busy
+                ? t('safePlaces.loading', { defaultValue: 'Loading...' })
+                : t('safePlaces.noResults', { defaultValue: 'No results.' })}
+            </div>
           )}
         </div>
       </Card>

@@ -7,6 +7,7 @@ import { Card, CardDescription, CardTitle } from '../components/ui/Card'
 import { Input } from '../components/ui/Input'
 import { Modal } from '../components/ui/Modal'
 import { evaluateRisk, type AIDetectionSettings, type JourneySample } from '../lib/aiSafety'
+import { DEMO_DESTINATIONS, createDemoSosEvent } from '../lib/demoData'
 import { env, mapStyleUrl } from '../lib/env'
 import { clearWatch, getCurrentPosition, watchPosition } from '../lib/location'
 import { getPref } from '../lib/prefs'
@@ -30,17 +31,21 @@ function secondsToMin(s: number) {
 }
 
 async function geocode(q: string): Promise<Place[]> {
-  if (!env.maptilerKey) return []
+  if (!env.maptilerKey) {
+    const needle = q.toLowerCase()
+    return DEMO_DESTINATIONS.filter((d) => d.name.toLowerCase().includes(needle)).slice(0, 5)
+  }
   const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(
     q,
   )}.json?autocomplete=true&limit=5&key=${env.maptilerKey}`
   const res = await fetch(url)
-  if (!res.ok) return []
+  if (!res.ok) return DEMO_DESTINATIONS.slice(0, 5)
   const json = await res.json()
-  return (json.features ?? []).map((f: any) => ({
+  const live = (json.features ?? []).map((f: any) => ({
     name: f.place_name,
     center: f.center as [number, number],
   }))
+  return live.length ? live : DEMO_DESTINATIONS.slice(0, 5)
 }
 
 function haversineMeters(a: [number, number], b: [number, number]) {
@@ -238,11 +243,12 @@ export function JourneyPage() {
           if (risk.dangerous && !pendingEscalationRef.current) {
             pendingEscalationRef.current = window.setTimeout(async () => {
               pendingEscalationRef.current = null
-              await supabase.from('sos_events').insert({
+              const { error } = await supabase.from('sos_events').insert({
                 journey_id: currentJourneyId,
                 level: 1,
                 status: 'triggered',
               })
+              if (error) createDemoSosEvent(1)
             }, detectionSettings.noResponseSeconds * 1000)
           }
         },
@@ -423,11 +429,12 @@ export function JourneyPage() {
                   pendingEscalationRef.current = null
                 }
                 // Trigger SOS escalation via DB row (pluggable providers)
-                await supabase.from('sos_events').insert({
+                const { error } = await supabase.from('sos_events').insert({
                   journey_id: journeyId,
                   level: 1,
                   status: 'triggered',
                 })
+                if (error) createDemoSosEvent(1)
               }}
             >
               Need help

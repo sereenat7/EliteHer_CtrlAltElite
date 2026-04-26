@@ -1,9 +1,12 @@
+import { useTranslation } from 'react-i18next'
+
 type AppLogoProps = {
   className?: string
   showWordmark?: boolean
 }
 
 export function AppLogo({ className = '', showWordmark = true }: AppLogoProps) {
+  const { t } = useTranslation()
   return (
     <div className={`flex items-center gap-2 ${className}`.trim()}>
       <div className="relative grid h-9 w-9 place-items-center overflow-hidden rounded-xl bg-pink-500/20 ring-1 ring-pink-300/40">
@@ -13,7 +16,9 @@ export function AppLogo({ className = '', showWordmark = true }: AppLogoProps) {
       {showWordmark ? (
         <div className="leading-tight">
           <div className="text-sm font-semibold tracking-tight">Saaya</div>
-          <div className="text-xs text-zinc-400">Stay alert. Stay safe.</div>
+          <div className="text-xs text-zinc-400">
+            {t('branding.tagline', { defaultValue: 'Stay alert. Stay safe.' })}
+          </div>
         </div>
       ) : null}
     </div>

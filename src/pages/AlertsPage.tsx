@@ -1,5 +1,6 @@
 import { LocateFixed, ShieldAlert, ShieldPlus } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { Button } from '../components/ui/Button'
 import { Card, CardDescription, CardTitle } from '../components/ui/Card'
@@ -37,6 +38,7 @@ function metersToText(m: number) {
 }
 
 export function AlertsPage() {
+  const { t } = useTranslation()
   const [incidents, setIncidents] = useState<Incident[]>([])
   const [pos, setPos] = useState<{ lat: number; lng: number } | null>(null)
   const [busy, setBusy] = useState(false)
@@ -119,11 +121,23 @@ export function AlertsPage() {
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <CardTitle className="flex items-center gap-2">
-              Real-time Alerts <Badge>{incidents.length} total</Badge>
+              {t('alerts.title', { defaultValue: 'Real-time Alerts' })}{' '}
+              <Badge>
+                {t('alerts.totalCount', {
+                  defaultValue: '{{count}} total',
+                  count: incidents.length,
+                })}
+              </Badge>
             </CardTitle>
             <CardDescription className="mt-1">
-              Based on live community reports near your current location.
-              {usingDemo ? ' Demo stream active with simulated Mumbai activity.' : ''}
+              {t('alerts.subtitle', {
+                defaultValue: 'Based on live community reports near your current location.',
+              })}
+              {usingDemo
+                ? ` ${t('alerts.demoStream', {
+                    defaultValue: 'Demo stream active with simulated Mumbai activity.',
+                  })}`
+                : ''}
             </CardDescription>
           </div>
           <Button
@@ -133,7 +147,9 @@ export function AlertsPage() {
             disabled={busy}
             leftIcon={<LocateFixed className="h-4 w-4" />}
           >
-            {pos ? 'Update' : 'Locate'}
+            {pos
+              ? t('common.update', { defaultValue: 'Update' })
+              : t('alerts.locate', { defaultValue: 'Locate' })}
           </Button>
         </div>
       </Card>
@@ -142,7 +158,7 @@ export function AlertsPage() {
         <Card className="border-amber-400/20 bg-amber-500/10">
           <CardTitle>High-risk nearby</CardTitle>
           <CardDescription className="mt-1">
-            Severity ≥ 4 within ~1.2km (live).
+            {t('alerts.highRiskSubtitle', { defaultValue: 'Severity >= 4 within ~1.2km (live).' })}
           </CardDescription>
           <div className="mt-3 space-y-2">
             {highRisk.length ? (
@@ -162,26 +178,32 @@ export function AlertsPage() {
                       {metersToText(dist)} • {formatRelative(incident.created_at)}
                     </div>
                   </div>
-                  <div className="text-xs text-zinc-300">{incident.verified ? 'verified' : ''}</div>
+                  <div className="text-xs text-zinc-300">
+                    {incident.verified ? t('alerts.verified', { defaultValue: 'verified' }) : ''}
+                  </div>
                 </div>
               ))
             ) : (
-              <div className="text-sm text-zinc-300">No high-risk reports nearby.</div>
+              <div className="text-sm text-zinc-300">
+                {t('alerts.noHighRisk', { defaultValue: 'No high-risk reports nearby.' })}
+              </div>
             )}
           </div>
         </Card>
       ) : (
         <Card>
-          <CardTitle>Enable alerts</CardTitle>
+          <CardTitle>{t('alerts.enableTitle', { defaultValue: 'Enable alerts' })}</CardTitle>
           <CardDescription className="mt-1">
-            Tap Locate to see nearby risk alerts.
+            {t('alerts.enableSubtitle', { defaultValue: 'Tap Locate to see nearby risk alerts.' })}
           </CardDescription>
         </Card>
       )}
 
       <Card className="space-y-2">
-        <CardTitle>Nearby safe places</CardTitle>
-        <CardDescription>Closest verified support points around you.</CardDescription>
+        <CardTitle>{t('alerts.safePlacesTitle', { defaultValue: 'Nearby safe places' })}</CardTitle>
+        <CardDescription>
+          {t('alerts.safePlacesSubtitle', { defaultValue: 'Closest verified support points around you.' })}
+        </CardDescription>
         <div className="mt-2 space-y-2">
           {nearbySafePlaces.length ? (
             nearbySafePlaces.map((p) => (
@@ -195,28 +217,38 @@ export function AlertsPage() {
                     {p.type.replace('_', ' ')} • {metersToText(p.dist)}
                   </div>
                 </div>
-                <div className="text-xs text-zinc-300">safe</div>
+                <div className="text-xs text-zinc-300">
+                  {t('alerts.safe', { defaultValue: 'safe' })}
+                </div>
               </div>
             ))
           ) : (
-            <div className="text-sm text-zinc-400">Location needed to show safe places.</div>
+            <div className="text-sm text-zinc-400">
+              {t('alerts.safePlacesLocationNeeded', {
+                defaultValue: 'Location needed to show safe places.',
+              })}
+            </div>
           )}
         </div>
         <Link to="/app/safe-places">
           <Button variant="secondary" className="w-full" leftIcon={<ShieldPlus className="h-4 w-4" />}>
-            Open full safe places list
+            {t('alerts.openSafePlaces', { defaultValue: 'Open full safe places list' })}
           </Button>
         </Link>
       </Card>
 
       <Card className="space-y-2">
-        <CardTitle>Nearby reports</CardTitle>
+        <CardTitle>{t('alerts.nearbyReportsTitle', { defaultValue: 'Nearby reports' })}</CardTitle>
         <CardDescription>
-          Sorted by distance from your current position.
+          {t('alerts.nearbyReportsSubtitle', {
+            defaultValue: 'Sorted by distance from your current position.',
+          })}
         </CardDescription>
         <div className="mt-2 space-y-2">
           {!pos ? (
-            <div className="text-sm text-zinc-400">Location not set yet.</div>
+            <div className="text-sm text-zinc-400">
+              {t('alerts.locationNotSet', { defaultValue: 'Location not set yet.' })}
+            </div>
           ) : nearby.length ? (
             nearby.map(({ incident, dist }) => (
               <div
@@ -232,11 +264,15 @@ export function AlertsPage() {
                     {incident.description ? ` • ${incident.description}` : ''}
                   </div>
                 </div>
-                <div className="text-xs text-zinc-400">{incident.verified ? 'verified' : ''}</div>
+                <div className="text-xs text-zinc-400">
+                  {incident.verified ? t('alerts.verified', { defaultValue: 'verified' }) : ''}
+                </div>
               </div>
             ))
           ) : (
-            <div className="text-sm text-zinc-400">No reports found.</div>
+            <div className="text-sm text-zinc-400">
+              {t('alerts.noReportsFound', { defaultValue: 'No reports found.' })}
+            </div>
           )}
         </div>
       </Card>

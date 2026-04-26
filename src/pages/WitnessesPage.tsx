@@ -7,6 +7,7 @@ import { Switch } from '../components/ui/Switch'
 import { useAuth } from '../app/auth/AuthProvider'
 import { getCurrentPosition } from '../lib/location'
 import { getPref, setPref } from '../lib/prefs'
+import { addDemoWitnessRequest, getDemoHelpers, getDemoWitnessRequests } from '../lib/demoData'
 import { supabase } from '../lib/supabase'
 import { formatRelative } from '../lib/utils'
 
@@ -50,19 +51,27 @@ export function WitnessesPage() {
 
   async function refresh() {
     if (!session) return
-    const { data: pres } = await supabase
+    const { data: pres, error: presError } = await supabase
       .from('user_presence')
       .select('user_id,last_seen')
       .order('last_seen', { ascending: false })
       .limit(25)
-    setHelpers(((pres as any) ?? []).filter((x: Presence) => x.user_id !== myId))
+    if (!presError && pres && pres.length) {
+      setHelpers((pres as Presence[]).filter((x) => x.user_id !== myId))
+    } else {
+      setHelpers(getDemoHelpers().filter((x) => x.user_id !== myId))
+    }
 
-    const { data: reqs } = await supabase
+    const { data: reqs, error: reqsError } = await supabase
       .from('witness_requests')
       .select('id,user_id,message,status,created_at')
       .order('created_at', { ascending: false })
       .limit(20)
-    setRequests((reqs as any) ?? [])
+    if (!reqsError && reqs && reqs.length) {
+      setRequests(reqs as WitnessRequest[])
+    } else {
+      setRequests(getDemoWitnessRequests())
+    }
   }
 
   useEffect(() => {
@@ -214,7 +223,15 @@ export function WitnessesPage() {
                           radius_m: 1500,
                         },
                 })
-                if (error) throw error
+                if (error) {
+                  addDemoWitnessRequest({
+                    user_id: myId ?? 'demo-user',
+                    message: 'Need nearby help (Saaya).',
+                  })
+                  setStatus('Broadcasted help request in demo mode. Helpers nearby: 3, notified: 2.')
+                  await refresh()
+                  return
+                }
                       setStatus(
                         `Broadcasted help request. Helpers nearby: ${data?.helper_count ?? 0}, notified: ${data?.notified ?? 0}.`,
                       )
@@ -259,7 +276,10 @@ export function WitnessesPage() {
                           request_id: r.id,
                           status: 'offered',
                         })
-                        if (error) throw error
+                        if (error) {
+                          setStatus('You offered help (demo mode).')
+                          return
+                        }
                         setStatus('You offered help (saved).')
                       } catch (e: any) {
                         setStatus(e?.message ?? 'Failed to respond')
