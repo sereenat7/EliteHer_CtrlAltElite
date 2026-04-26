@@ -165,16 +165,20 @@ export function HomeMapPage() {
     map.on('error', () => {
       // Ignore recoverable map runtime errors to avoid false "failed" UI.
     })
+    map.on('render', () => {
+      // In some deployments "load" can be delayed while tiles still render.
+      // As soon as we paint, hide loading overlay once.
+      if (!didMapLoad) {
+        didMapLoad = true
+        window.clearTimeout(loadTimeout)
+        setMapStatus('ready')
+      }
+    })
 
     map.on('load', async () => {
       didMapLoad = true
       window.clearTimeout(loadTimeout)
       setMapStatus('ready')
-    map.on('render', () => {
-      // In some deployments "load" can be delayed while tiles still render.
-      // As soon as we paint, hide loading overlay.
-      if (mapStatus !== 'ready') setMapStatus('ready')
-    })
 
       map.addSource('incidents', {
         type: 'geojson',
