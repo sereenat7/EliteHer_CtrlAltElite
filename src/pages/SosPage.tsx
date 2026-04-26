@@ -58,7 +58,12 @@ export function SosPage() {
         .single()
       if (error) throw error
       setActiveEventId(data.id)
-      setStatus('SOS triggered. Escalation is pluggable (configure providers in backend).')
+      try {
+        await supabase.functions.invoke('sos-escalate', { body: { sos_event_id: data.id } })
+        setStatus('SOS triggered and escalation dispatched to backend.')
+      } catch {
+        setStatus('SOS triggered. Backend escalation unavailable; deploy edge function "sos-escalate".')
+      }
       await Haptics.impact({ style: ImpactStyle.Heavy })
       await refresh()
     } catch (e: any) {

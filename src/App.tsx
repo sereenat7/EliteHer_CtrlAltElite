@@ -1,7 +1,9 @@
 import 'maplibre-gl/dist/maplibre-gl.css'
+import { useEffect, useState } from 'react'
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from './app/auth/AuthProvider'
 import { TabsLayout } from './app/layout/TabsLayout'
+import { AppLogo } from './components/AppLogo'
 import { AlertsPage } from './pages/AlertsPage'
 import { AIDetectionPage } from './pages/AIDetectionPage'
 import { ARNavigationPage } from './pages/ARNavigationPage'
@@ -23,7 +25,33 @@ import { WitnessesPage } from './pages/WitnessesPage'
 
 function AppGate({ children }: { children: React.ReactNode }) {
   const { loading } = useAuth()
-  if (loading) return <div className="bg-app h-full" />
+  const [showSplash, setShowSplash] = useState(true)
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setShowSplash(false), 2200)
+    return () => window.clearTimeout(timer)
+  }, [])
+
+  if (loading || showSplash) {
+    return (
+      <div className="bg-app grid h-full place-items-center px-6">
+        <div className="w-full max-w-xs rounded-3xl border border-white/10 bg-black/30 p-6 text-center backdrop-blur">
+          <div className="saaya-loader-perspective mx-auto">
+            <div className="saaya-loader-cube">
+              <div className="saaya-face saaya-face-front">S</div>
+              <div className="saaya-face saaya-face-back">S</div>
+              <div className="saaya-face saaya-face-right">S</div>
+              <div className="saaya-face saaya-face-left">S</div>
+              <div className="saaya-face saaya-face-top">S</div>
+              <div className="saaya-face saaya-face-bottom">S</div>
+            </div>
+          </div>
+          <AppLogo className="mt-5 justify-center" showWordmark />
+          <div className="mt-3 text-xs text-zinc-300">Preparing live safety heatmap...</div>
+        </div>
+      </div>
+    )
+  }
   return <>{children}</>
 }
 

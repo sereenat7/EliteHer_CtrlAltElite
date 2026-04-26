@@ -23,6 +23,14 @@ type Incident = {
   verified: boolean
 }
 
+type SafePlace = {
+  id: string
+  name: string
+  type: 'hospital' | 'police' | 'fire_station'
+  lat: number
+  lng: number
+}
+
 function incidentsToGeoJson(incidents: Incident[]) {
   return {
     type: 'FeatureCollection' as const,
@@ -40,6 +48,50 @@ function incidentsToGeoJson(incidents: Incident[]) {
   }
 }
 
+function safePlacesToGeoJson(places: SafePlace[]) {
+  return {
+    type: 'FeatureCollection' as const,
+    features: places.map((p) => ({
+      type: 'Feature' as const,
+      geometry: { type: 'Point' as const, coordinates: [p.lng, p.lat] as [number, number] },
+      properties: { id: p.id, name: p.name, type: p.type },
+    })),
+  }
+}
+
+async function fetchNearbySafePlaces(lng: number, lat: number) {
+  const q = `
+    [out:json][timeout:25];
+    (
+      node["amenity"="hospital"](around:3500,${lat},${lng});
+      node["amenity"="police"](around:3500,${lat},${lng});
+      node["amenity"="fire_station"](around:3500,${lat},${lng});
+    );
+    out body;
+  `
+  const res = await fetch('https://overpass-api.de/api/interpreter', {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+    body: q,
+  })
+  if (!res.ok) return []
+  const json = await res.json()
+  const places: SafePlace[] = (json.elements ?? [])
+    .map((el: any) => {
+      const type = el?.tags?.amenity as SafePlace['type'] | undefined
+      if (!type || typeof el.lat !== 'number' || typeof el.lon !== 'number') return null
+      return {
+        id: String(el.id),
+        name: el?.tags?.name || type.replace('_', ' '),
+        type,
+        lat: el.lat,
+        lng: el.lon,
+      } as SafePlace
+    })
+    .filter(Boolean)
+  return places
+}
+
 export function HomeMapPage() {
   const { t } = useTranslation()
   const mapRef = useRef<MapLibreMap | null>(null)
@@ -47,6 +99,7 @@ export function HomeMapPage() {
   const [incidents, setIncidents] = useState<Incident[]>([])
   const [selected, setSelected] = useState<Incident | null>(null)
   const [quickOpen, setQuickOpen] = useState(false)
+  const [safePlacesCount, setSafePlacesCount] = useState(0)
 
   const lastIncident = useMemo(() => incidents[0], [incidents])
 
@@ -83,7 +136,6 @@ export function HomeMapPage() {
   useEffect(() => {
     if (!mapDivRef.current) return
     const style = mapStyleUrl()
-    if (!style) return
 
     const map = new maplibregl.Map({
       container: mapDivRef.current,
@@ -154,6 +206,33 @@ export function HomeMapPage() {
         },
       })
 
+      map.addSource('safe-places', {
+        type: 'geojson',
+        data: safePlacesToGeoJson([]),
+      })
+
+      map.addLayer({
+        id: 'safe-places-points',
+        type: 'circle',
+        source: 'safe-places',
+        paint: {
+          'circle-radius': 6,
+          'circle-color': [
+            'match',
+            ['get', 'type'],
+            'hospital',
+            '#22c55e',
+            'police',
+            '#60a5fa',
+            'fire_station',
+            '#f97316',
+            '#a3a3a3',
+          ],
+          'circle-stroke-color': 'rgba(255,255,255,0.7)',
+          'circle-stroke-width': 1,
+        },
+      })
+
       map.on('click', 'incidents-points', (e) => {
         const id = e.features?.[0]?.properties?.id as string | undefined
         if (!id) return
@@ -163,11 +242,16 @@ export function HomeMapPage() {
 
       try {
         const pos = await getCurrentPosition()
+        const center: [number, number] = [pos.coords.longitude, pos.coords.latitude]
         map.easeTo({
-          center: [pos.coords.longitude, pos.coords.latitude],
+          center,
           zoom: 14,
           duration: 900,
         })
+        const safePlaces = await fetchNearbySafePlaces(center[0], center[1])
+        const safePlacesSource = map.getSource('safe-places') as GeoJSONSource | undefined
+        safePlacesSource?.setData(safePlacesToGeoJson(safePlaces))
+        setSafePlacesCount(safePlaces.length)
       } catch {
         // ignore
       }
@@ -193,7 +277,12 @@ export function HomeMapPage() {
     if (!map) return
     try {
       const pos = await getCurrentPosition()
-      map.easeTo({ center: [pos.coords.longitude, pos.coords.latitude], zoom: 15, duration: 700 })
+      const center: [number, number] = [pos.coords.longitude, pos.coords.latitude]
+      map.easeTo({ center, zoom: 15, duration: 700 })
+      const safePlaces = await fetchNearbySafePlaces(center[0], center[1])
+      const safePlacesSource = map.getSource('safe-places') as GeoJSONSource | undefined
+      safePlacesSource?.setData(safePlacesToGeoJson(safePlaces))
+      setSafePlacesCount(safePlaces.length)
     } catch {
       // ignore
     }
@@ -206,6 +295,7 @@ export function HomeMapPage() {
           <div className="min-w-0">
             <CardTitle className="flex items-center gap-2">
               {t('map.title')} <Badge>{incidents.length} reports</Badge>
+              <Badge>{safePlacesCount} safe places</Badge>
             </CardTitle>
             <CardDescription className="mt-1">
               {t('map.subtitle')}

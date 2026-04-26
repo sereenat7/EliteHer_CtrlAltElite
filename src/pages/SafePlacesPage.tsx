@@ -3,7 +3,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '../components/ui/Button'
 import { Card, CardDescription, CardTitle } from '../components/ui/Card'
-import { env } from '../lib/env'
 import { getCurrentPosition } from '../lib/location'
 
 type Place = {
@@ -16,34 +15,50 @@ type Place = {
 const CATEGORIES: Array<{
   key: string
   label: string
-  query: string
+  amenity: string
   icon: React.ReactNode
 }> = [
-  { key: 'police', label: 'Police', query: 'police', icon: <ShieldAlert className="h-4 w-4" /> },
-  { key: 'hospital', label: 'Hospital', query: 'hospital', icon: <Hospital className="h-4 w-4" /> },
-  { key: 'pharmacy', label: 'Pharmacy', query: 'pharmacy', icon: <Store className="h-4 w-4" /> },
-  { key: 'metro', label: 'Transit', query: 'metro station', icon: <Compass className="h-4 w-4" /> },
+  { key: 'police', label: 'Police', amenity: 'police', icon: <ShieldAlert className="h-4 w-4" /> },
+  { key: 'hospital', label: 'Hospital', amenity: 'hospital', icon: <Hospital className="h-4 w-4" /> },
+  { key: 'pharmacy', label: 'Pharmacy', amenity: 'pharmacy', icon: <Store className="h-4 w-4" /> },
+  { key: 'fire', label: 'Fire', amenity: 'fire_station', icon: <Compass className="h-4 w-4" /> },
 ]
 
-async function geocodePoi(q: string, proximity?: [number, number]) {
-  if (!env.maptilerKey) return []
-  const url = new URL(`https://api.maptiler.com/geocoding/${encodeURIComponent(q)}.json`)
-  url.searchParams.set('key', env.maptilerKey)
-  url.searchParams.set('limit', '8')
-  url.searchParams.set('autocomplete', 'true')
-  if (proximity) url.searchParams.set('proximity', `${proximity[0]},${proximity[1]}`)
-  // Prefer POIs when possible
-  url.searchParams.set('types', 'poi')
-
-  const res = await fetch(url.toString())
+async function searchNearbyAmenities(amenity: string, proximity: [number, number]) {
+  const [lon, lat] = proximity
+  const query = `
+    [out:json][timeout:25];
+    (
+      node["amenity"="${amenity}"](around:5000,${lat},${lon});
+      way["amenity"="${amenity}"](around:5000,${lat},${lon});
+      relation["amenity"="${amenity}"](around:5000,${lat},${lon});
+    );
+    out center 12;
+  `
+  const res = await fetch('https://overpass-api.de/api/interpreter', {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+    body: query,
+  })
   if (!res.ok) return []
   const json = await res.json()
-  return (json.features ?? []).map((f: any) => ({
-    id: f.id as string,
-    name: (f.text as string) ?? (f.place_name as string),
-    address: f.place_name as string,
-    center: f.center as [number, number],
-  })) as Place[]
+  return (json.elements ?? [])
+    .map((el: any) => {
+      const center = el.center
+        ? [el.center.lon, el.center.lat]
+        : typeof el.lon === 'number' && typeof el.lat === 'number'
+          ? [el.lon, el.lat]
+          : null
+      if (!center) return null
+      const name = el?.tags?.name ?? amenity.replace('_', ' ')
+      return {
+        id: `${el.type}-${el.id}` as string,
+        name,
+        address: el?.tags?.['addr:full'] ?? el?.tags?.['addr:street'] ?? 'Nearby',
+        center: center as [number, number],
+      } as Place
+    })
+    .filter((p: Place | null): p is Place => Boolean(p))
 }
 
 export function SafePlacesPage() {
@@ -81,7 +96,7 @@ export function SafePlacesPage() {
       setStatus(null)
       try {
         const c = CATEGORIES.find((x) => x.key === category)!
-        const data = await geocodePoi(c.query, pos)
+        const data = (await searchNearbyAmenities(c.amenity, pos)).slice(0, 12)
         if (!cancelled) setPlaces(data)
       } catch (e: any) {
         if (!cancelled) setStatus(e?.message ?? 'Failed to load places')
@@ -114,7 +129,7 @@ export function SafePlacesPage() {
       <Card>
         <CardTitle>Nearby safe places</CardTitle>
         <CardDescription className="mt-1">
-          Real POI results via MapTiler Geocoding with proximity bias.
+          Live OpenStreetMap data near your location.
         </CardDescription>
       </Card>
 

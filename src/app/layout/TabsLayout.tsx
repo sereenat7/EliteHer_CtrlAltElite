@@ -1,9 +1,10 @@
-import { AlertTriangle, Bell, Map, Settings, Siren, ShieldPlus } from 'lucide-react'
+import { Bell, Map, Settings, Siren, ShieldPlus } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthProvider'
 import { LanguagePicker } from '../../components/LanguagePicker'
+import { AppLogo } from '../../components/AppLogo'
 import { getPref } from '../../lib/prefs'
 import { supabase } from '../../lib/supabase'
 import { cn } from '../../lib/utils'
@@ -158,15 +159,7 @@ export function TabsLayout() {
     <div className="bg-app h-full text-zinc-100">
       <div className="mx-auto flex h-full max-w-md flex-col">
         <header className="flex items-center justify-between px-4 pb-2 pt-5" data-hidden-header="true">
-          <div className="flex items-center gap-2">
-            <div className="grid h-9 w-9 place-items-center rounded-xl bg-pink-500/15 ring-1 ring-pink-400/30">
-              <AlertTriangle className="h-5 w-5 text-pink-200" />
-            </div>
-            <div className="leading-tight">
-              <div className="text-sm font-semibold tracking-tight">{t('app.name')}</div>
-              <div className="text-xs text-zinc-400">{t('app.tagline')}</div>
-            </div>
-          </div>
+          <AppLogo />
           <div className="flex items-center gap-2">
             <LanguagePicker />
             <NavLink
