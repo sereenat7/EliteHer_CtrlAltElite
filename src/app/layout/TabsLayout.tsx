@@ -1,4 +1,4 @@
-import { AlertTriangle, Bell, Map, Route, Settings, Siren, ShieldPlus } from 'lucide-react'
+import { AlertTriangle, Bell, Map, Settings, Siren, ShieldPlus } from 'lucide-react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { LanguagePicker } from '../../components/LanguagePicker'
@@ -9,7 +9,6 @@ export function TabsLayout() {
   const tabs = [
     { to: '/', label: t('tabs.map'), icon: Map, end: true },
     { to: '/alerts', label: t('tabs.alerts'), icon: Bell },
-    { to: '/journey', label: t('tabs.journey'), icon: Route },
     { to: '/report', label: t('tabs.report'), icon: ShieldPlus },
     { to: '/sos', label: t('tabs.sos'), icon: Siren },
   ]
@@ -49,7 +48,7 @@ export function TabsLayout() {
         </main>
 
         <nav className="fixed inset-x-0 bottom-0 mx-auto max-w-md border-t border-white/10 bg-black/70 backdrop-blur">
-          <div className="grid grid-cols-5 px-2 py-2">
+          <div className="grid grid-cols-4 px-2 py-2">
             {tabs.map((t) => {
               const Icon = t.icon
               return (
